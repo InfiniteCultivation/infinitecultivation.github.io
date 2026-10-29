@@ -356,3 +356,11 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,178,94,0
 .people .p-actions { max-width: none; width: 100%; justify-content: flex-start; padding-top: 2px; }
 .people li:has(.p-actions .btn:only-child) { flex-wrap: nowrap; }
 .people li:has(.p-actions .btn:only-child) .p-actions { width: auto; padding-top: 0; }
+
+/* Keep the tab bar pinned: it lives outside the animated screens, and pages always fill the screen. */
+html, body { min-height: 100%; }
+body { min-height: 100dvh; }
+#screen-home.active { min-height: calc(100dvh - 120px); }
+.tabbar { display: none; transform: translateZ(0); }
+body:has(#screen-home.active) .tabbar { display: grid; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
