@@ -350,3 +350,9 @@ Decisions agreed with the owner, to build into later milestones.
 - Searching may wake a guardian beast; party members in the same area fight beside you (up to 3). Lose → all realm treasures vanish, back to the gate.
 - Players can attack each other outside the gate (party joins on both sides). Winners choose 1 treasure per defeated member (5 min, else random); the rest vanish; losers go to the gate.
 - Leaving at the gate (or time running out) moves treasures into the bag. New realm-only items: Mystic Spirit Fruit, Mystic Jade Marrow, Soul-Washing Lotus, Divine Essence Pill, Fragment of the Heavenly Dao, True Dragon Scale, Phoenix Tail Feather.
+
+## Step 23 — Admin panel (built)
+- Opens by tapping the 修 seal or the "name · Admin" label (admins only; every RPC re-checks is_admin server-side).
+- Overview counts, player search, full character editor (realm/stage/qi/stones/stamina/points/roots/class/profession/toxicity/name/teleport), quick fixes (heal, end stuck fight, remove from realm, end seclusion), give/take items, message, ban (1h–permanent with reason) / unban, per-player history.
+- Global announcement (notification + global chat), sect treasury edit and raid trigger, admin action log.
+- Bans: banned players see a ban screen; every action is refused server-side.

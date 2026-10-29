@@ -71,6 +71,15 @@
     </section>
 
     <!-- Character creation -->
+    <section id="screen-banned" class="screen">
+      <header class="brand small"><span class="seal">修</span></header>
+      <div class="card">
+        <h4 class="card-title">Your account is banned</h4>
+        <p id="ban-text"></p>
+        <button class="btn ghost" id="btn-ban-signout">Sign out</button>
+      </div>
+    </section>
+
     <section id="screen-create" class="screen">
       <header class="brand small">
         <h2>Begin your path</h2>
@@ -355,6 +364,32 @@
       </div>
 
       <!-- Upgrades -->
+      <div class="pane" id="pane-admin">
+        <div class="card admin-head">
+          <h4 class="card-title">Admin panel</h4>
+          <div class="admin-stats" id="ad-stats"></div>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Find a player</h4>
+          <div class="admin-row"><input id="ad-q" placeholder="Name or username" autocomplete="off"><button class="btn primary small" id="ad-find">Search</button></div>
+          <ul class="people" id="ad-results"></ul>
+        </div>
+        <div class="card" id="ad-player" hidden></div>
+        <div class="card">
+          <h4 class="card-title">Announcement to everyone</h4>
+          <textarea id="ad-announce" rows="3" maxlength="290" placeholder="Sent as a notification to every player and posted in global chat"></textarea>
+          <button class="btn ghost small" id="ad-announce-btn">Send announcement</button>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Sects</h4>
+          <ul class="people" id="ad-sects"></ul>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Recent admin actions</h4>
+          <ul class="war-log" id="ad-log"></ul>
+        </div>
+      </div>
+
       <div class="pane" id="pane-realm">
         <div class="card realm-head">
           <p class="eyebrow" id="rl-name"></p>

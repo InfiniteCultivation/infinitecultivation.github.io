@@ -186,6 +186,7 @@
       currentProfile = await loadProfile(session.user.id);
       const ch = await loadCharacter();
       if (!ch) { show('screen-create'); return; }
+      if (ch.banned) { showBanned(ch); return; }
       if (ch.gained > 0 && ch.away_seconds >= 60) {
         toast(`In seclusion (${duration(ch.away_seconds)}) you gathered ${fmt(ch.gained)} qi.`);
       }
@@ -1303,6 +1304,144 @@
       li.appendChild(box);
       ul.appendChild(li);
     });
+  }
+
+  // ---------- Banned ----------
+  function showBanned(b) {
+    const until = new Date(b.until);
+    const perm = until.getFullYear() - new Date().getFullYear() > 5;
+    $('#ban-text').textContent = `${perm ? 'This ban is permanent.' : `The ban lifts on ${until.toLocaleString()}.`} Reason: ${b.reason || 'not given'}.`;
+    show('screen-banned');
+  }
+  $('#btn-ban-signout').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
+
+  // ---------- Admin panel ----------
+  let adChar = null;
+  const isAdmin = () => !!(currentProfile && currentProfile.is_admin);
+  ['.topbar .seal', '#home-username'].forEach((sel) => $(sel).addEventListener('click', () => { if (isAdmin()) showPane('pane-admin'); }));
+  async function adCall(fn, args, ok) {
+    const { data, error } = await sb.rpc(fn, args || {});
+    if (error) { toast(friendly(error)); return null; }
+    if (ok) toast(ok);
+    return data;
+  }
+  async function loadAdmin() {
+    const d = await adCall('admin_overview');
+    if (!d) return;
+    $('#ad-stats').innerHTML = [['Players', d.players], ['Banned', d.banned], ['Fights now', d.battles], ['In realms', d.in_realms]]
+      .map(([l, v]) => `<div class="stat"><span class="stat-label">${l}</span><span class="stat-value">${v}</span></div>`).join('');
+    const ul = $('#ad-sects'); ul.innerHTML = '';
+    d.sects.forEach((x) => {
+      const inp = document.createElement('input'); inp.type = 'number'; inp.className = 'bet-input'; inp.value = x.treasury; inp.inputMode = 'numeric';
+      const save = smallBtn('Set treasury', 'ghost', async () => { const r = await adCall('admin_sect', { p_sect: x.id, p_treasury: Number(inp.value), p_raid: false }, 'Treasury updated.'); if (r) loadAdmin(); });
+      const raid = smallBtn(x.raid ? 'Raid running' : 'Start raid', 'danger-btn ghost', function () { armed(this, 'Tap again', async () => { const r = await adCall('admin_sect', { p_sect: x.id, p_treasury: null, p_raid: true }, 'Raid started.'); if (r) loadAdmin(); }); });
+      raid.disabled = !!x.raid;
+      ul.appendChild(personRow(`<strong>${esc(x.name)}</strong><span class="muted small-text">${x.members} members${x.raid ? ` · raided by the ${esc(x.raid)}` : ''}</span>`, [inp, save, raid]));
+    });
+    $('#ad-log').innerHTML = d.log.map((l) => `<li><span class="muted">${new Date(l.at).toLocaleString()}</span> · <strong>${esc(l.by || '')}</strong> ${esc(l.action)}${l.target ? ` <strong>${esc(l.target)}</strong>` : ''}${l.detail ? ` — ${esc(l.detail)}` : ''}</li>`).join('') || '<li class="muted">Nothing yet.</li>';
+  }
+  async function adSearch() {
+    const r = await adCall('admin_search', { p_q: $('#ad-q').value });
+    const ul = $('#ad-results'); ul.innerHTML = '';
+    (r || []).forEach((x) => ul.appendChild(personRow(`<strong>${esc(x.name)}</strong>
+      <div class="tags">${x.banned ? '<span class="enemy-tag">Banned</span>' : ''}${x.admin ? '<span class="warn-tag">Admin</span>' : ''}</div>
+      <span class="muted small-text">@${esc(x.username)} · ${REALMS[x.realm - 1]} ${x.stage}${x.sect ? ` · ${esc(x.sect)}` : ''}</span>`, [smallBtn('Open', 'primary', () => adOpen(x.id))])));
+    if (r && !r.length) ul.innerHTML = '<li class="muted small-text">No one found.</li>';
+  }
+  $('#ad-find').addEventListener('click', adSearch);
+  $('#ad-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') adSearch(); });
+  $('#ad-announce-btn').addEventListener('click', function () {
+    const body = $('#ad-announce').value.trim();
+    if (!body) return toast('Write the announcement first.');
+    armed(this, 'Tap again to send to everyone', async () => { const r = await adCall('admin_message', { p_char: null, p_body: body }, 'Announcement sent.'); if (r) { $('#ad-announce').value = ''; loadAdmin(); } });
+  });
+  async function adOpen(id) {
+    const d = await adCall('admin_get', { p_char: id });
+    if (d) renderAdChar(d);
+  }
+  const AD_FIELDS = [
+    ['realm', 'Realm (1–10)', 'number'], ['stage', 'Stage (1–10)', 'number'], ['qi', 'Qi', 'number'], ['spirit_stones', 'Spirit stones', 'number'],
+    ['stamina', 'Stamina', 'number'], ['free_points', 'Free stat points', 'number'],
+    ['spirit_root', 'Spirit roots (comma separated)', 'text'], ['root_grade', 'Root grade', 'text'], ['root_multiplier', 'Root multiplier', 'number'],
+    ['combat_class', 'Class', 'select:,swordsman,body,spellcaster,soul,healer'], ['class_level', 'Class level', 'number'], ['class_cap', 'Class cap', 'select:25,50,75,99,100'],
+    ['profession', 'Profession', 'select:,gatherer,alchemist,blacksmith,talisman,array'], ['prof_level', 'Profession level', 'number'], ['prof_cap', 'Profession cap', 'select:25,50,75,99,100'],
+    ['tox_temp', 'Toxicity', 'number'], ['tox_perm', 'Permanent toxicity', 'number'], ['name', 'Character name', 'text']
+  ];
+  function renderAdChar(d) {
+    adChar = d;
+    const box = $('#ad-player');
+    box.hidden = false;
+    const val = (k) => (k === 'spirit_root' ? (d.spirit_root || []).join(', ') : d[k] == null ? '' : d[k]);
+    box.innerHTML = `<div class="bag-head"><h4 class="card-title">${esc(d.name)}</h4><span class="muted small-text">@${esc(d.username)}</span></div>
+      <p class="small-text">${REALMS[d.realm - 1]} ${d.stage} · qi ${fmt(d.qi)} / ${fmt(d.qi_needed)} · HP ${d.hp}/${d.hp_max} · energy ${d.energy}/${d.energy_max}<br>
+        ${esc(d.region || '')}${d.travelling ? ' (travelling)' : ''}${d.sect ? ` · ${esc(d.sect)} (${d.sect_role})` : ''}${d.in_battle ? ' · <span class="hurt">in a fight</span>' : ''}${d.in_realm ? ` · inside the ${d.in_realm} realm` : ''}</p>
+      ${d.banned_until ? `<p class="hurt small-text">Banned until ${new Date(d.banned_until).toLocaleString()} — ${esc(d.ban_reason || 'no reason')}</p>` : ''}
+      <div class="war-form" id="ad-quick"></div>
+      <h4 class="card-title ad-sub">Edit character</h4>
+      <div class="ad-grid">${AD_FIELDS.map(([k, l, t]) => `<label><span>${l}</span>${t.startsWith('select:')
+        ? `<select class="mini-select" data-k="${k}">${t.slice(7).split(',').map((o) => `<option value="${o}" ${String(val(k)) === o ? 'selected' : ''}>${o || '— none —'}</option>`).join('')}</select>`
+        : `<input data-k="${k}" type="${t}" value="${esc(String(val(k)))}" ${t === 'number' ? 'inputmode="decimal" step="any"' : ''}>`}</label>`).join('')}
+        <label><span>Teleport to</span><select class="mini-select" data-k="region_id">${(world ? world.regions : []).map((r) => `<option value="${r.id}" ${r.id === d.region_id ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select></label>
+      </div>
+      <button class="btn primary small" id="ad-save">Save changes</button>
+      <h4 class="card-title ad-sub">Items</h4>
+      <div class="admin-row"><select class="mini-select" id="ad-item"></select><input type="number" class="bet-input" id="ad-qty" value="1" inputmode="numeric"><button class="btn ghost small" id="ad-give">Give</button></div>
+      <ul class="people" id="ad-inv"></ul>
+      <h4 class="card-title ad-sub">Message or ban</h4>
+      <textarea id="ad-msg" rows="2" maxlength="290" placeholder="Message (sent as a notification) or ban reason"></textarea>
+      <div class="war-form"><button class="btn ghost small" id="ad-send">Send message</button>
+        <select class="mini-select" id="ad-banlen"><option value="1">Ban 1 hour</option><option value="24">Ban 1 day</option><option value="168">Ban 7 days</option><option value="720">Ban 30 days</option><option value="876000">Ban permanently</option></select>
+        <button class="btn danger-btn small" id="ad-ban">Ban</button>${d.banned_until ? '<button class="btn ghost small" id="ad-unban">Unban</button>' : ''}</div>
+      <h4 class="card-title ad-sub">History</h4>
+      <ul class="war-log">${d.log.map((l) => `<li><span class="muted">${new Date(l.at).toLocaleString()}</span> · ${esc(l.by || '')} ${esc(l.action)}${l.detail ? ` — ${esc(l.detail)}` : ''}</li>`).join('') || '<li class="muted">No admin actions yet.</li>'}</ul>`;
+    const q = $('#ad-quick');
+    const quick = (label, key, msg) => q.appendChild(smallBtn(label, 'ghost', async () => { const r = await adCall('admin_update', { p_char: d.id, p_changes: { [key]: true } }, msg); if (r) renderAdChar(r); }));
+    quick('Full heal', 'heal', 'Healed.');
+    if (d.in_battle) quick('End stuck fight', 'end_battles', 'Fight ended.');
+    if (d.in_realm) quick('Remove from realm', 'leave_realm', 'Removed from the realm.');
+    quick('End seclusion', 'end_seclusion', 'Seclusion ended.');
+    box.querySelector('#ad-save').onclick = async () => {
+      const ch = {};
+      box.querySelectorAll('[data-k]').forEach((el) => {
+        const k = el.dataset.k;
+        const cur = k === 'region_id' ? String(d.region_id) : String(val(k));
+        if (el.value !== cur) ch[k] = el.type === 'number' || k === 'region_id' ? Number(el.value) : el.value;
+      });
+      if (!Object.keys(ch).length) return toast('Nothing changed.');
+      const r = await adCall('admin_update', { p_char: d.id, p_changes: ch }, 'Saved.');
+      if (r) renderAdChar(r);
+    };
+    (async () => {
+      if (!itemCatalog) { const { data } = await sb.from('items').select('*'); itemCatalog = Object.fromEntries((data || []).map((i) => [i.id, i])); }
+      box.querySelector('#ad-item').innerHTML = Object.values(itemCatalog).sort((a, b) => a.name.localeCompare(b.name)).map((i) => `<option value="${i.id}">${esc(i.name)} (${i.rarity})</option>`).join('');
+    })();
+    box.querySelector('#ad-give').onclick = async () => {
+      const n = parseInt(box.querySelector('#ad-qty').value || '0', 10);
+      if (!n) return toast('Enter a quantity.');
+      const r = await adCall('admin_give', { p_char: d.id, p_item: box.querySelector('#ad-item').value, p_qty: n }, n > 0 ? 'Given.' : 'Removed.');
+      if (r) renderAdChar(r);
+    };
+    const inv = box.querySelector('#ad-inv');
+    if (!d.inventory.length) inv.innerHTML = '<li class="muted small-text">Empty bag.</li>';
+    d.inventory.forEach((it) => inv.appendChild(personRow(`<strong>${esc(it.name)} <span class="qty">×${it.qty}</span></strong>`, [
+      smallBtn('−1', 'ghost', async () => { const r = await adCall('admin_give', { p_char: d.id, p_item: it.item, p_qty: -1 }); if (r) renderAdChar(r); }),
+      smallBtn('Remove all', 'danger-btn ghost', function () { armed(this, 'Tap again', async () => { const r = await adCall('admin_give', { p_char: d.id, p_item: it.item, p_qty: -it.qty }); if (r) renderAdChar(r); }); })
+    ])));
+    box.querySelector('#ad-send').onclick = async () => {
+      const m = box.querySelector('#ad-msg').value.trim();
+      if (!m) return toast('Write a message first.');
+      const r = await adCall('admin_message', { p_char: d.id, p_body: m }, 'Message sent.');
+      if (r) renderAdChar(r);
+    };
+    box.querySelector('#ad-ban').onclick = function () {
+      armed(this, 'Tap again to ban', async () => {
+        const r = await adCall('admin_ban', { p_char: d.id, p_hours: Number(box.querySelector('#ad-banlen').value), p_reason: box.querySelector('#ad-msg').value.trim() }, `${d.name} is banned.`);
+        if (r) { renderAdChar(r); loadAdmin(); }
+      });
+    };
+    const ub = box.querySelector('#ad-unban');
+    if (ub) ub.onclick = async () => { const r = await adCall('admin_ban', { p_char: d.id, p_hours: 0, p_reason: null }, 'Unbanned.'); if (r) { renderAdChar(r); loadAdmin(); } };
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   // ---------- Secret realms ----------
@@ -2939,6 +3078,7 @@
     clearInterval(dmTimer);
     if (id !== 'pane-battle') stopBattle();
     if (id === 'pane-realm') loadRealm();
+    if (id === 'pane-admin') { if (!isAdmin()) return; loadAdmin(); loadWorld().catch(() => {}); }
     if (id === 'pane-arts') loadArts();
     if (id === 'pane-class') loadClass();
     if (id === 'pane-gear') loadGear();
