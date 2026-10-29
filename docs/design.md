@@ -195,3 +195,13 @@ Decisions agreed with the owner, to build into later milestones.
 - Manuals are items; read from the Bag to learn the skill. Town markets sell Early manuals (150–300 stones). ~1–3% chance per explore to find a random manual.
 - HP = 10 × (Con + Fort); Energy = 5 × (Soul + Endu); Stamina max = 100 + (Con + Wil − 20)/4. HP regenerates 3%/h; energy 30%/h.
 - Below 25% HP you are too injured to explore. Town healers restore full HP over 5 minutes for 0.2 stones per missing HP.
+
+## Turn-based combat (owner design, Oct 29 2026)
+- Each turn: auto exchange (primary attack + utilities vs primary defense + utilities), then the active player plays ONE art (costs energy) or skips/meditates (regains extra energy). Energy also regenerates a little each turn.
+- The defender may respond with a reaction/counter art by spending energy. Then the other player's turn. Inspired by Magic: The Gathering / Yu-Gi-Oh, with arts as the cards.
+- Auto mode: arts go in the player's set order when there is enough energy; if not enough energy, the turn is skipped to regenerate. Players set up their arts in Character for when they are attacked via Look for opponents (used automatically when defending).
+- Items in combat: combat classes can use items (healing pills, energy pills) but it uses their turn's action.
+- Crafting classes (e.g. alchemist) have class skills/arts that combine with inventory items: using an Early-quality item does NOT consume it (fair vs combat classes' unlimited arts); higher-rarity items have a rapidly increasing chance to be consumed. An alchemist art can attack AND use an item (below a quality limit) in the same turn.
+- Gatherer-type classes can set traps on their turn that help counter attacks.
+- All classes can also learn general combat arts not tied to a class.
+- Defaults chosen by Claude pending owner veto: monster fights auto by default with a manual option; 30-second turn timer in live PvP (auto picks when it runs out); art types Strike / Technique / Reaction / Ultimate; hidden reactions; cooldowns; one reaction per action; Flee action; element Resonance.
