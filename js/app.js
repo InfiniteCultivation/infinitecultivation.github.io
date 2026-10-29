@@ -81,8 +81,8 @@
 
   function friendly(err) {
     const m = (err && (err.message || err.error_description)) || String(err);
-    if (/invalid login credentials/i.test(m)) return 'Wrong username or password.';
-    if (/already registered|already exists/i.test(m)) return 'That username is taken.';
+    if (/invalid login credentials/i.test(m)) return 'Wrong account name or password.';
+    if (/already registered|already exists/i.test(m)) return 'That account name is taken.';
     if (/email not confirmed/i.test(m)) return 'Account sign-in is not switched on yet. Ask the admin.';
     if (/rate limit|too many/i.test(m)) return 'Too many attempts. Wait a minute and try again.';
     if (/failed to fetch|network/i.test(m)) return 'Could not reach the server. Check your connection.';
@@ -153,7 +153,7 @@
     const f = ev.target;
     setError(f, '');
     const username = f.username.value.trim();
-    if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) return setError(f, 'Wrong username or password.');
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) return setError(f, 'Wrong account name or password.');
     setBusy(f, true, 'Entering…');
     const { error } = await sb.auth.signInWithPassword({ email: toEmail(username), password: f.password.value });
     setBusy(f, false);
@@ -167,14 +167,14 @@
     const f = ev.target;
     setError(f, '');
     const username = f.username.value.trim();
-    if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) return setError(f, 'Username must be 3–16 letters, numbers or _.');
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) return setError(f, 'Account name must be 3–16 letters, numbers or _.');
     if (f.password.value.length < 6) return setError(f, 'Password must be at least 6 characters.');
     if (f.password.value !== f.confirm.value) return setError(f, 'Passwords do not match.');
     setBusy(f, true, 'Creating…');
     try {
       const { data: free, error: e1 } = await sb.rpc('username_available', { p_username: username });
       if (e1) throw e1;
-      if (!free) throw new Error('That username is taken.');
+      if (!free) throw new Error('That account name is taken.');
       const { data, error } = await sb.auth.signUp({
         email: toEmail(username),
         password: f.password.value,
