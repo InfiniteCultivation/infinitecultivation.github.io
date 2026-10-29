@@ -278,6 +278,11 @@
           <p class="muted small-text st-help">Up to six arts. On autopilot — and whenever someone attacks you — they are used in this order whenever you have the energy; a charged ultimate goes first. With no energy, you meditate to recover. Reactions fire on their own when an enemy art comes at you.</p>
           <ol class="art-slots" id="ar-slots"></ol>
         </div>
+        <div class="card ult-card">
+          <h4 class="card-title">Ultimate</h4>
+          <div id="ar-ult"></div>
+          <p class="muted small-text st-help">Your ultimate sits apart from your six arts. In battle it charges a little every turn — stronger ultimates take more turns — and can be unleashed once full.</p>
+        </div>
         <div class="card">
           <h4 class="card-title">How you fight</h4>
           <div class="mode-row"><span>When a beast attacks</span><div class="chips" id="ar-monster">
@@ -435,6 +440,7 @@
         </div>
         <div class="card" id="bt-actions" hidden>
           <div class="art-grid" id="bt-arts"></div>
+          <div class="ult-bar" id="bt-ult" hidden></div>
           <div class="row-btns small-row" id="bt-misc"></div>
         </div>
         <div class="card react-card" id="bt-react" hidden>

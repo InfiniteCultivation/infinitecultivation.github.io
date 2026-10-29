@@ -1860,6 +1860,15 @@
       }
       slots.appendChild(li);
     }
+    const ult = d.arts.find((x) => x.slot === 7);
+    const ub = $('#ar-ult');
+    ub.innerHTML = '';
+    if (ult) {
+      ub.appendChild(personRow(`<strong>${esc(ult.name)}</strong><div class="tags">${artTags(ult)}<span class="lvl">Lv ${ult.level} · charges in ${(ult.effect && ult.effect.charge) || 4} turns</span></div>`,
+        [smallBtn('Remove', 'ghost', () => equipArt(ult.id, null))]));
+    } else {
+      ub.innerHTML = `<p class="muted small-text">${d.arts.some((x) => x.type === 'ultimate') ? 'Empty — choose one of your ultimates below.' : 'Empty — you have not learned an ultimate art yet.'}</p>`;
+    }
     ['monster', 'pvp'].forEach((k) => {
       document.querySelectorAll(`#ar-${k} .chip`).forEach((b) => b.classList.toggle('active', b.dataset.v === d[`${k}_mode`]));
     });
@@ -1870,13 +1879,15 @@
     d.arts.forEach((a) => {
       const btns = [];
       if (a.level >= a.tier_cap && a.tier_cap <= 50) btns.push(trainerBtn('art', a.id, a.tier_cap, loadArts));
-      if (a.slot == null) {
+      if (a.slot == null && a.type === 'ultimate') {
+        btns.push(smallBtn(ult ? 'Make my ultimate' : 'Equip as ultimate', 'primary', () => equipArt(a.id, 7)));
+      } else if (a.slot == null) {
         const b = smallBtn(free ? 'Equip' : 'Slots full', 'primary', () => equipArt(a.id, free));
         b.disabled = !free;
         btns.push(b);
       }
       ul.appendChild(personRow(`<strong>${esc(a.name)}</strong>
-        <div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level} · ${esc(a.tier)}</span>${a.slot ? `<span class="lead">Slot ${a.slot}</span>` : ''}</div>
+        <div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level} · ${esc(a.tier)}</span>${a.slot === 7 ? '<span class="lead">Ultimate</span>' : a.slot ? `<span class="lead">Slot ${a.slot}</span>` : ''}</div>
         <span class="muted small-text">${esc(a.description || '')}${a.level >= a.tier_cap && a.tier_cap < 100 ? ` · ${trainerNote(a.tier_cap)}` : ''}</span>`, btns));
     });
   }
@@ -2253,7 +2264,7 @@
     if (!acts.hidden) {
       const grid = $('#bt-arts');
       grid.innerHTML = '';
-      v.arts.filter((a) => a.type !== 'reaction').forEach((a) => {
+      v.arts.filter((a) => a.type !== 'reaction' && a.type !== 'ultimate').forEach((a) => {
         const b = document.createElement('button');
         b.className = `art-btn t-${a.type}`;
         let why = '';
@@ -2267,7 +2278,24 @@
         b.onclick = () => act({ type: 'art', art: a.id });
         grid.appendChild(b);
       });
-      if (!v.arts.some((a) => a.type !== 'reaction')) grid.innerHTML = '<p class="muted small-text">No arts equipped — set them up under Character › Arts.</p>';
+      if (!v.arts.some((a) => a.type !== 'reaction' && a.type !== 'ultimate')) grid.innerHTML = '<p class="muted small-text">No arts equipped — set them up under Character › Arts.</p>';
+      const u = v.arts.find((a) => a.type === 'ultimate');
+      const ubar = $('#bt-ult');
+      ubar.hidden = !u;
+      if (u) {
+        const need = u.charge_need || 4;
+        const have = Math.min(need, me.charge);
+        const ready = have >= need;
+        ubar.className = `ult-bar${ready ? ' ready' : ''}`;
+        ubar.innerHTML = `<div class="ult-top"><strong>${esc(u.name)}</strong><span>${ready ? (me.en >= u.energy ? 'Ready!' : `Ready · needs ${u.energy} energy`) : `Charging ${have}/${need}`}</span></div>
+          <div class="meter-track"><div class="meter-fill ult" style="width:${(have / need) * 100}%"></div></div>`;
+        const ubtn = document.createElement('button');
+        ubtn.className = 'btn primary small ult-btn';
+        ubtn.textContent = `Unleash · ${u.energy} energy`;
+        ubtn.disabled = !u.usable;
+        ubtn.onclick = () => act({ type: 'art', art: u.id });
+        ubar.appendChild(ubtn);
+      }
       const misc = $('#bt-misc');
       misc.innerHTML = '';
       misc.appendChild(smallBtn('Meditate (+energy)', 'ghost', () => act({ type: 'meditate' })));

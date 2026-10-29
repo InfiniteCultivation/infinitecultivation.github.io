@@ -602,3 +602,12 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .alert-banner small { display: block; color: var(--muted); font-size: .75rem; margin-top: 2px; }
 .tabbar-btn { position: relative; }
 .alert-banner[hidden] { display: none; }
+
+/* ---------- Ultimate ---------- */
+.ult-card { border-color: rgba(214,178,94,0.45); }
+.ult-bar { margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid rgba(214,178,94,0.45); background: rgba(214,178,94,0.06); }
+.ult-bar.ready { border-color: var(--gold-2); box-shadow: 0 0 18px rgba(240,212,138,0.25); }
+.ult-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; font-size: .88rem; }
+.ult-top span { color: var(--gold-2); font-size: .78rem; }
+.meter-fill.ult { background: linear-gradient(90deg, var(--gold), var(--gold-2)); transition: width .4s ease; }
+.btn.ult-btn { width: 100%; margin-top: 10px; }
