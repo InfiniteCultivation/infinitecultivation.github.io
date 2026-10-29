@@ -632,3 +632,4 @@ button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer;
 .home-quick .q-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .q-val.loc { white-space: normal; }
 #travel-top { margin-bottom: 12px; }
+.support-pick { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(95,196,160,0.35); }

@@ -1123,7 +1123,7 @@
     const btn = $('#btn-look');
     btn.disabled = true; btn.textContent = 'Searching…';
     const [{ data, error }, npc, mine] = await Promise.all([sb.rpc('look_for_opponents'), sb.rpc('npcs_here'), sb.rpc('my_arts')]);
-    mySupport = ((mine && mine.data && mine.data.arts) || []).filter((a) => a.type === 'support');
+    mySupport = ((mine && mine.data && mine.data.arts) || []).filter((a) => a.type === 'support' && a.slot != null);
     btn.disabled = false; btn.textContent = 'Look again';
     if (error) return toast(friendly(error));
     renderOpponents(data || [], (npc && npc.data) || []);
@@ -1189,13 +1189,20 @@
       });
       const guide = smallBtn('Seek guidance', 'ghost', () => openGuidance(o));
       box.append(atk, bet, duel, guide);
-      mySupport.forEach((sa) => {
-        const b = smallBtn(sa.id === 'restoring_hands' ? 'Heal' : sa.id === 'vigor_infusion' ? 'Restore stamina' : sa.name, 'ghost heal-btn', async () => {
+      const sup = smallBtn('Support', 'ghost heal-btn', () => {
+        const open = li.querySelector('.support-pick');
+        if (open) { open.remove(); return; }
+        if (!mySupport.length) { toast('Equip a support art first (Character › Arts).'); return; }
+        const pick = document.createElement('div');
+        pick.className = 'support-pick';
+        pick.innerHTML = '<span class="muted small-text">Use a support art:</span>';
+        mySupport.forEach((sa) => pick.appendChild(smallBtn(sa.name, 'ghost heal-btn', async () => {
           const r = await sectCall('use_support_art', { p_art: sa.id, p_target: o.id });
           if (r) { toast(r.message); loadOpponents(); }
-        });
-        box.appendChild(b);
+        })));
+        li.appendChild(pick);
       });
+      box.appendChild(sup);
       li.appendChild(box);
       ul.appendChild(li);
     });
@@ -1966,12 +1973,13 @@
     d.arts.forEach((a) => {
       const btns = [];
       if (a.level >= a.tier_cap && a.tier_cap <= 50) btns.push(trainerBtn('art', a.id, a.tier_cap, loadArts));
-      if (a.type === 'support') {
-        if (a.id === 'restoring_hands') btns.push(smallBtn('Heal yourself', 'ghost', async () => {
+      if (a.type === 'support' && a.slot != null && a.id === 'restoring_hands') {
+        btns.push(smallBtn('Heal yourself', 'ghost', async () => {
           const r = await sectCall('use_support_art', { p_art: a.id, p_target: state.id });
           if (r) { toast(r.message); loadArts(); }
         }));
-      } else if (a.slot == null && a.type === 'ultimate') {
+      }
+      if (a.slot == null && a.type === 'ultimate') {
         btns.push(smallBtn(ult ? 'Make my ultimate' : 'Equip as ultimate', 'primary', () => equipArt(a.id, 7)));
       } else if (a.slot == null) {
         const b = smallBtn(free ? 'Equip' : 'Slots full', 'primary', () => equipArt(a.id, free));
@@ -1980,7 +1988,7 @@
       }
       ul.appendChild(personRow(`<strong>${esc(a.name)}</strong>
         <div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level} · ${esc(a.tier)}</span>${a.slot === 7 ? '<span class="lead">Ultimate</span>' : a.slot ? `<span class="lead">Slot ${a.slot}</span>` : ''}</div>
-        <span class="muted small-text">${esc(a.description || '')}${a.type === 'support' ? ' Use it on others from World › Cultivators nearby.' : ''}${a.level >= a.tier_cap && a.tier_cap < 100 ? ` · ${trainerNote(a.tier_cap)}` : ''}</span>`, btns));
+        <span class="muted small-text">${esc(a.description || '')}${a.level >= a.tier_cap && a.tier_cap < 100 ? ` · ${trainerNote(a.tier_cap)}` : ''}</span>`, btns));
     });
   }
   async function equipArt(id, slot) {
