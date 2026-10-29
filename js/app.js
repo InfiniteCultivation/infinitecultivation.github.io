@@ -1097,12 +1097,14 @@
   async function loadOpponents() {
     const btn = $('#btn-look');
     btn.disabled = true; btn.textContent = 'Searching…';
-    const [{ data, error }, npc] = await Promise.all([sb.rpc('look_for_opponents'), sb.rpc('npcs_here')]);
+    const [{ data, error }, npc, mine] = await Promise.all([sb.rpc('look_for_opponents'), sb.rpc('npcs_here'), sb.rpc('my_arts')]);
+    mySupport = ((mine && mine.data && mine.data.arts) || []).filter((a) => a.type === 'support');
     btn.disabled = false; btn.textContent = 'Look again';
     if (error) return toast(friendly(error));
     renderOpponents(data || [], (npc && npc.data) || []);
   }
 
+  let mySupport = [];
   const TEMPER = { friendly: ['Friendly', 'qi'], neutral: ['Neutral', ''], hostile: ['Hostile', 'bad'] };
   function renderOpponents(list, npcs) {
     const ul = $('#opp-list');
@@ -1143,7 +1145,7 @@
       const warn = o.relation === 'mine' ? '<span class="warn-tag">Same sect</span>' : o.relation === 'ally' ? '<span class="warn-tag">Ally</span>' : '';
       const li = personRow(`<strong>${esc(o.name)}</strong>
         <div class="tags">${sect}${warn}<span class="odds o-${o.odds.toLowerCase()}">${o.odds}</span></div>
-        <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · ${esc(o.root)} root${o.secluded ? ' · in seclusion' : ''}</span>
+        <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · ${esc(o.root)} root${o.secluded ? ' · in seclusion' : ''}${o.hurt > 0 ? ` · <span class="hurt">wounded ${o.hurt}%</span>` : ''}</span>
         ${o.block ? `<span class="muted small-text block">${esc(o.block)}</span>` : ''}`, []);
       const box = document.createElement('div');
       box.className = 'p-actions';
@@ -1162,6 +1164,13 @@
       });
       const guide = smallBtn('Seek guidance', 'ghost', () => openGuidance(o));
       box.append(atk, bet, duel, guide);
+      mySupport.forEach((sa) => {
+        const b = smallBtn(sa.id === 'restoring_hands' ? 'Heal' : sa.id === 'vigor_infusion' ? 'Restore stamina' : sa.name, 'ghost heal-btn', async () => {
+          const r = await sectCall('use_support_art', { p_art: sa.id, p_target: o.id });
+          if (r) { toast(r.message); loadOpponents(); }
+        });
+        box.appendChild(b);
+      });
       li.appendChild(box);
       ul.appendChild(li);
     });
@@ -1881,7 +1890,7 @@
   }
 
   // ---------- Arts ----------
-  const ART_TYPE = { strike: 'Strike', technique: 'Technique', reaction: 'Reaction', ultimate: 'Ultimate' };
+  const ART_TYPE = { strike: 'Strike', technique: 'Technique', reaction: 'Reaction', ultimate: 'Ultimate', support: 'Support' };
   let artsData = null;
   async function loadArts() {
     const { data, error } = await sb.rpc('my_arts');
@@ -1890,7 +1899,7 @@
     renderArts();
   }
   function artTags(a) {
-    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.profession ? `<span class="prof-tag">${PROFS[a.profession] ? PROFS[a.profession].name : a.profession}</span>` : ''}${a.combat_class ? `<span class="prof-tag cls">${CLASSES[a.combat_class] ? CLASSES[a.combat_class].name : a.combat_class}</span>` : ''}${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.energy} energy</span>`;
+    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.type === 'support' ? '' : ''}${a.profession ? `<span class="prof-tag">${PROFS[a.profession] ? PROFS[a.profession].name : a.profession}</span>` : ''}${a.combat_class ? `<span class="prof-tag cls">${CLASSES[a.combat_class] ? CLASSES[a.combat_class].name : a.combat_class}</span>` : ''}${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.type === 'support' ? 'energy as needed' : `${a.energy} energy`}</span>`;
   }
   function renderArts() {
     const d = artsData;
@@ -1932,7 +1941,12 @@
     d.arts.forEach((a) => {
       const btns = [];
       if (a.level >= a.tier_cap && a.tier_cap <= 50) btns.push(trainerBtn('art', a.id, a.tier_cap, loadArts));
-      if (a.slot == null && a.type === 'ultimate') {
+      if (a.type === 'support') {
+        if (a.id === 'restoring_hands') btns.push(smallBtn('Heal yourself', 'ghost', async () => {
+          const r = await sectCall('use_support_art', { p_art: a.id, p_target: state.id });
+          if (r) { toast(r.message); loadArts(); }
+        }));
+      } else if (a.slot == null && a.type === 'ultimate') {
         btns.push(smallBtn(ult ? 'Make my ultimate' : 'Equip as ultimate', 'primary', () => equipArt(a.id, 7)));
       } else if (a.slot == null) {
         const b = smallBtn(free ? 'Equip' : 'Slots full', 'primary', () => equipArt(a.id, free));
@@ -1941,7 +1955,7 @@
       }
       ul.appendChild(personRow(`<strong>${esc(a.name)}</strong>
         <div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level} · ${esc(a.tier)}</span>${a.slot === 7 ? '<span class="lead">Ultimate</span>' : a.slot ? `<span class="lead">Slot ${a.slot}</span>` : ''}</div>
-        <span class="muted small-text">${esc(a.description || '')}${a.level >= a.tier_cap && a.tier_cap < 100 ? ` · ${trainerNote(a.tier_cap)}` : ''}</span>`, btns));
+        <span class="muted small-text">${esc(a.description || '')}${a.type === 'support' ? ' Use it on others from World › Cultivators nearby.' : ''}${a.level >= a.tier_cap && a.tier_cap < 100 ? ` · ${trainerNote(a.tier_cap)}` : ''}</span>`, btns));
     });
   }
   async function equipArt(id, slot) {
@@ -2000,7 +2014,8 @@
     swordsman: { name: 'Swordsman', ico: '劍', blurb: 'Fast martial strikes. Critical hits, bleeding wounds and deadly ripostes.' },
     body: { name: 'Body Cultivator', ico: '體', blurb: 'Temper the flesh into a weapon. Tough, hard-hitting, drains life and shrugs off stuns.' },
     spellcaster: { name: 'Spellcaster', ico: '術', blurb: 'Elemental magic. Choose a primary element: its arts hit harder and always build Resonance.' },
-    soul: { name: 'Soul Cultivator', ico: '魂', blurb: 'Strike the spirit itself. Steals energy, weakens foes and resists mental attacks.' }
+    soul: { name: 'Soul Cultivator', ico: '魂', blurb: 'Strike the spirit itself. Steals energy, weakens foes and resists mental attacks.' },
+    healer: { name: 'Physician', ico: '醫', blurb: 'Support and healing magic. Heals, shields and cleanses in battle, and restores the health and stamina of others with support arts.' }
   };
   const BASIC_ELEMENTS = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
   let clData = null;

@@ -277,3 +277,10 @@ Decisions agreed with the owner, to build into later milestones.
 - Demonic territory: ambush chance while exploring is 50% of encounters instead of 30%.
 - Region tags show NPC control (☯ righteous, ☠ demonic, "Freed" when open).
 - (update) NPC variety: ~130 NPCs in total (7 per unclaimed wild region at the start). Wanderers may move every hour (50%); stage growth and purse refills stay daily. Each "Look for opponents" scan shows guardians and disciples always, plus a random 2–4 of the wanderers currently in the region.
+
+## Step 16: Physician class + support arts (built)
+- Fifth combat class (internal id "healer"), named Physician by the owner: support and healing magic. Staff weapons suit it.
+- Passives (scale with class level): +30% healing and shields, +5% chance per turn to recover 8% health.
+- Battle arts: Mending Light (heal 30% + cleanse bleeding/poison/weakness/stun), Jade Aegis (25% shield + defense), Radiant Palm (magic strike, half the damage returns as healing).
+- Support arts (new art type, used outside battle from Cultivators nearby, never slotted): Restoring Hands (heal another player or yourself; 2 health per energy) and Vigor Infusion (restore another player's stamina; 0.6 per energy; not on yourself). Both scale with art level and Physician class level; target must be in the same region and not fighting. Using them on others raises the art and the class.
+- Owner wants healing allies inside combat later, once group battles (sect wars, raids) exist.

@@ -618,3 +618,6 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .chip { position: relative; }
 .chip-dot { display: inline-block; width: 7px; height: 7px; margin-left: 5px; border-radius: 50%; background: var(--danger); vertical-align: middle; }
 .chip-dot[hidden] { display: none; }
+.slot-tag.t-support { color: #a8e6cf; background: rgba(95,196,160,0.14); }
+.btn.heal-btn { color: #a8e6cf; border-color: rgba(95,196,160,0.45); }
+.hurt { color: #ff9f8f; }
