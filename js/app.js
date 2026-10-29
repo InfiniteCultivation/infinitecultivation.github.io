@@ -769,9 +769,12 @@
     rg.innerHTML = '';
     if (!s.regions.length) rg.innerHTML = '<li class="empty">Your sect controls no land yet.</li>';
     s.regions.forEach((r) => {
-      const tribute = r.specialty === 'item' ? ` · 1 ${esc(r.item)} every ${s.tribute_hours}h` : '';
-      rg.appendChild(personRow(`<strong>${esc(r.name)}</strong><div class="tags">${specialtyTag(r)}</div>
-        <span class="muted small-text">Danger ${r.danger} · +${fmt(r.danger * Number(r.tax_mult) * s.tax_per_danger_hour)} stones / hour${tribute}</span>`,
+      const boost = r.stronghold ? s.stronghold_mult : 1;
+      const every = Math.round((s.tribute_hours / boost) * 10) / 10;
+      const tribute = r.specialty === 'item' ? ` · 1 ${esc(r.item)} every ${every}h` : '';
+      const sh = r.stronghold ? `<span class="spec s-strong">🏯 Stronghold ×${s.stronghold_mult}</span>` : '';
+      rg.appendChild(personRow(`<strong>${esc(r.name)}</strong><div class="tags">${sh}${specialtyTag(r)}</div>
+        <span class="muted small-text">Danger ${r.danger} · +${fmt(Math.round(r.danger * Number(r.tax_mult) * s.tax_per_danger_hour * boost))} stones / hour${tribute}</span>`,
         leader ? [smallBtn('Give up', 'ghost', function () {
           armed(this, 'Confirm', async () => { const d = await sectCall('release_region', { p_region: r.id }, `${r.name} released.`); if (d) { await loadControl(); renderMySect(d); } });
         })] : []));
@@ -793,7 +796,8 @@
         const ri = regionInfo(here.id);
         const perk = ri && ri.specialty === 'stones' ? ' It sits on a spirit vein: taxes here are doubled.'
           : ri && ri.specialty === 'item' ? ` It sends ${ri.item_name} to your storehouse as tribute.` : '';
-        p.textContent = `Claim the region you are standing in. Paid from the treasury. Its people will pay taxes, and disciples exploring there may receive gifts.${perk}`;
+        const home = here.id === s.home.id ? ` This is your sect's home — owning it makes it a Stronghold: its taxes, tribute and gifts are boosted ×${s.stronghold_mult}.` : '';
+        p.textContent = `Claim the region you are standing in. Paid from the treasury. Its people will pay taxes, and disciples exploring there may receive gifts.${perk}${home}`;
         const b = smallBtn(`Claim ${here.name} · ${fmt(cost)} stones`, 'primary wide', async () => {
           const d = await sectCall('claim_region', {}, `${here.name} is now yours.`);
           if (d) { await loadControl(); renderMySect(d); }

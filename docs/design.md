@@ -103,3 +103,4 @@ Decisions agreed with the owner, to build into later milestones.
 - New materials: Spirit Iron Ore, Spirit Jade, Flame Crystal, Thunder Stone, Ancient Spirit Wood (plus existing herbs, cores, Frost Lotus).
 - Leader can move the sect home to the region they stand in: 200 treasury stones, once every 7 days. Any region works, even one another sect controls — homes and territory are separate.
 - Many sects may share a home region for now; may need limits if the game gets crowded.
+- Stronghold: if a sect controls its own home region, that region's taxes, tribute speed and citizens' gift chance are ×1.5.

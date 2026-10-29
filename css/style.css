@@ -374,3 +374,4 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .mini-select { font: inherit; font-size: 14px; color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; padding: 6px 8px; max-width: 150px; }
 .store-note { margin: -4px 0 10px; }
 #move-box .btn { margin-top: 12px; }
+.spec.s-strong { color: #ffd98a; background: rgba(240,180,80,0.16); }
