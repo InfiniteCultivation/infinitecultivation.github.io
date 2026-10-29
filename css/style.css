@@ -666,3 +666,19 @@ button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer;
 .war-bar i { display: block; height: 100%; background: var(--gold-2); }
 .war-log { list-style: none; margin: 8px 0 0; padding: 0; font-size: .8rem; display: grid; gap: 4px; }
 .war-allies { display: grid; gap: 6px; margin-top: 6px; font-size: .9rem; }
+/* Tournaments */
+.tour-banner { background: rgba(214, 178, 94, .12); border: 1px solid rgba(214, 178, 94, .45); }
+.tour { padding: 10px 0; border-top: 1px solid rgba(255,255,255,.06); }
+.tour:first-child { border-top: 0; padding-top: 0; }
+.tour-head { display: flex; flex-direction: column; gap: 2px; }
+.tour-prizes { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .85rem; margin: 4px 0; }
+.bracket { display: grid; gap: 8px; margin-top: 8px; }
+.b-round { display: grid; gap: 4px; }
+.b-match { font-size: .82rem; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.04); }
+.b-match.mine { outline: 1px solid rgba(214, 178, 94, .5); }
+.b-match .w { color: var(--gold-2); font-weight: 600; } .b-match .l { color: var(--muted); text-decoration: line-through; }
+.b-match .live { font-size: .65rem; font-weight: 700; color: #fff; background: #d9534f; padding: 1px 6px; border-radius: 99px; }
+.tour-host { display: grid; gap: 8px; margin-top: 8px; }
+.prize-row { display: grid; grid-template-columns: 52px 1fr 1.6fr 52px; gap: 6px; align-items: center; font-size: .82rem; }
+.prize-row .bet-input, .prize-row .mini-select { width: 100%; min-width: 0; max-width: none; }
+#tour-body .war-form { margin-bottom: 10px; }

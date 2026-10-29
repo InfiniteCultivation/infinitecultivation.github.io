@@ -337,3 +337,9 @@ Decisions agreed with the owner, to build into later milestones.
 - Idle: a side that starts no fight for an hour loses 5% of its starting pool, at most 12 times.
 - Enemies' ambush cooldown drops to 30 min. After a war fight, towns refuse you for 5 min.
 - A pool at 0 ends it early; otherwise the higher pool wins at the end (tie = draw). Home banner + Sect › War card with scoreboard.
+
+## Step 21 — Tournaments (built)
+- Host from any town: 300-stone fee + three prizes (stones and/or an item each), escrowed. One tournament per continent at a time.
+- Whole world is notified (notification + global chat). 10 minutes to be in that town and enter (host can't enter; max 32).
+- Single elimination, random seeding, byes go to players who haven't had one. Matches are manual battles with fresh HP (instinct after 30 s); a player stuck in another fight for 3 min forfeits. 3rd-place match between the semifinal losers.
+- Prizes paid automatically; unclaimed places (too few players) return to the host. Under 2 entrants = called off, prizes (not fee) returned.

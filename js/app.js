@@ -194,6 +194,7 @@
       loadDuels();
       loadRaid();
       loadWar();
+      loadTour();
       refreshDmBadge();
       checkBattle();
     } catch (e) {
@@ -1301,6 +1302,90 @@
       li.appendChild(box);
       ul.appendChild(li);
     });
+  }
+
+  // ---------- Tournaments ----------
+  let tourData = null;
+  let tourHostOpen = false;
+  async function loadTour() {
+    const { data } = await sb.rpc('my_tournament');
+    if (!data) return;
+    tourData = data;
+    renderTour(data);
+    const live = data.list.some((t) => t.status === 'running' && t.matches.some((m) => m.mine && m.live));
+    if (live) checkBattle();
+  }
+  setInterval(() => {
+    if (!tourData || document.hidden) return;
+    if (tourData.list.some((t) => (t.entered || t.is_host) && (t.status === 'open' || t.status === 'running'))) loadTour();
+  }, 8000);
+
+  function tourBanner(d) {
+    const al = $('#tour-alert');
+    const t = d.list.find((x) => x.status === 'open' || (x.status === 'running' && (x.entered || x.is_host)));
+    al.hidden = !t;
+    if (!t) return;
+    const live = t.matches.some((m) => m.mine && m.live);
+    const line = t.status === 'open' ? `${t.entered ? 'You are entered · ' : ''}entries close in ${duration(Math.max(0, secsLeft(t.closes_at)))}`
+      : live ? 'Your match is live — tap to fight!' : `Round ${t.round} under way`;
+    al.innerHTML = `<span class="a-ico">🏆</span><span><strong>Tournament at ${esc(t.town)}</strong><small>${line} · 1st: ${esc(t.prizes[0])}</small></span>`;
+    al.onclick = () => (live ? checkBattle() : showPane('pane-world'));
+  }
+
+  function renderTour(d) {
+    tourBanner(d);
+    const body = $('#tour-body');
+    if (!body) return;
+    body.innerHTML = '';
+    const add = (html) => { const e = document.createElement('div'); e.innerHTML = html; body.appendChild(e); return e; };
+    if (!d.list.length) add('<p class="muted small-text">No tournament right now. Anyone can host one from a town: put up three prizes and the whole world is invited to fight for them.</p>');
+    d.list.forEach((t) => {
+      const head = t.status === 'open' ? `Entries close in ${duration(Math.max(0, secsLeft(t.closes_at)))}` : t.status === 'running' ? `Round ${t.round}` : t.status === 'done' ? 'Finished' : 'Called off';
+      const box = add(`<div class="tour">
+        <div class="tour-head"><strong>${esc(t.town)}</strong><span class="muted small-text">${esc(t.continent)} · hosted by ${esc(t.host)}</span></div>
+        <p class="small-text">${head}</p>
+        <div class="tour-prizes"><span>🥇 ${esc(t.prizes[0])}</span><span>🥈 ${esc(t.prizes[1])}</span><span>🥉 ${esc(t.prizes[2])}</span></div>
+        <p class="muted small-text">${t.entrants.length} entered${t.entrants.length ? `: ${t.entrants.map(esc).join(', ')}` : ''}</p>
+        ${t.results && t.results.message ? `<p class="small-text">${esc(t.results.message)}</p>` : ''}
+      </div>`);
+      if (t.matches.length) {
+        const rounds = {};
+        t.matches.forEach((m) => { (rounds[m.round] = rounds[m.round] || []).push(m); });
+        box.querySelector('.tour').insertAdjacentHTML('beforeend', `<div class="bracket">${Object.keys(rounds).map((r) => `<div class="b-round"><span class="eyebrow">Round ${r}</span>${rounds[r].map((m) =>
+          `<div class="b-match ${m.mine ? 'mine' : ''}">${m.third ? '<span class="muted">3rd place · </span>' : ''}${m.b ? `<span class="${m.winner === m.a ? 'w' : m.winner ? 'l' : ''}">${esc(m.a)}</span> vs <span class="${m.winner === m.b ? 'w' : m.winner ? 'l' : ''}">${esc(m.b)}</span>` : `<span class="w">${esc(m.a)}</span> <span class="muted">— bye</span>`}${m.live ? ' <span class="live">LIVE</span>' : ''}</div>`).join('')}</div>`).join('')}</div>`);
+      }
+      const btns = document.createElement('div'); btns.className = 'war-form';
+      if (t.status === 'open' && t.entered) btns.append(smallBtn('Withdraw', 'ghost', async () => { const r = await sectCall('tournament_leave', { p_id: t.id }); if (r) { tourData = r; renderTour(r); } }));
+      else if (t.can_join) btns.append(smallBtn('Enter tournament', 'primary', async () => { const r = await sectCall('tournament_join', { p_id: t.id }, 'You are entered. Stay nearby — matches start when entries close.'); if (r) { tourData = r; renderTour(r); } }));
+      else if (t.status === 'open' && !t.is_host) add(`<p class="muted small-text">Travel to ${esc(t.town)} to enter.</p>`);
+      if (btns.children.length) box.appendChild(btns);
+    });
+    if (!d.here_town) { add('<p class="muted small-text">You can host a tournament while in a town.</p>'); return; }
+    const toggle = smallBtn(tourHostOpen ? 'Close' : 'Host a tournament', 'ghost', () => { tourHostOpen = !tourHostOpen; renderTour(d); });
+    const tr = document.createElement('div'); tr.className = 'war-form'; tr.appendChild(toggle); body.appendChild(tr);
+    if (!tourHostOpen) return;
+    const form = add(`<div class="tour-host">
+      <p class="muted small-text">Hosting costs ${d.fee} spirit stones plus the prizes, which are held until the end. Entrants have 10 minutes to reach this town and enter, then single-elimination matches are fought in the arena (fresh health, no injuries). If fewer than 2 enter, prizes come back to you.</p>
+      ${['🥇 1st', '🥈 2nd', '🥉 3rd'].map((l, i) => `<div class="prize-row"><span>${l}</span><input type="number" min="0" inputmode="numeric" class="bet-input" data-st="${i}" placeholder="Stones"><select class="mini-select" data-it="${i}"><option value="">+ no item</option></select><input type="number" min="1" value="1" inputmode="numeric" class="bet-input qty" data-q="${i}"></div>`).join('')}
+      <button class="btn primary small" id="btn-host">Host tournament</button></div>`);
+    (async () => {
+      if (!itemCatalog) { const { data } = await sb.from('items').select('*'); itemCatalog = Object.fromEntries((data || []).map((i) => [i.id, i])); }
+      const { data: inv } = await sb.from('inventory').select('item_id,qty').eq('character_id', state.id).gt('qty', 0);
+      const opts = (inv || []).map((x) => `<option value="${x.item_id}">+ ${esc((itemCatalog[x.item_id] || {}).name || x.item_id)} (have ${x.qty})</option>`).join('');
+      form.querySelectorAll('select[data-it]').forEach((sel) => { sel.insertAdjacentHTML('beforeend', opts); });
+    })();
+    form.querySelector('#btn-host').onclick = function () {
+      const prizes = [0, 1, 2].map((i) => {
+        const st = Math.max(0, parseInt(form.querySelector(`[data-st="${i}"]`).value || '0', 10) || 0);
+        const it = form.querySelector(`[data-it="${i}"]`).value;
+        const q = Math.max(1, parseInt(form.querySelector(`[data-q="${i}"]`).value || '1', 10) || 1);
+        return it ? { stones: st, item: it, qty: q } : { stones: st };
+      });
+      armed(this, 'Tap again to announce', async () => {
+        const r = await sectCall('host_tournament', { p_prizes: prizes }, 'Tournament announced to the whole world!');
+        if (r) { tourHostOpen = false; tourData = r; renderTour(r); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+    };
   }
 
   // ---------- NPC raids on my sect ----------
@@ -2524,7 +2609,7 @@
     const enemies = v.sides.filter((x) => (x.team !== undefined ? x.team !== myTeam : x !== me));
     if (bTarget && !(enemies.find((x) => x.idx === bTarget && x.alive))) bTarget = null;
     const foe = (bTarget && enemies.find((x) => x.idx === bTarget)) || enemies.find((x) => x.focus && x.alive) || enemies.find((x) => x.alive !== false) || v.sides[2 - v.me];
-    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : v.kind === 'npc_sect' ? 'Sect challenge' : 'Ambush';
+    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : v.kind === 'npc_sect' ? 'Sect challenge' : v.kind === 'tournament' ? 'Tournament match' : 'Ambush';
     $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
     const fightersEl = document.querySelector('#pane-battle .fighters');
     if (v.team_battle) {
@@ -2597,7 +2682,7 @@
       misc.innerHTML = '';
       misc.appendChild(smallBtn('Meditate (+energy)', 'ghost', () => act({ type: 'meditate' })));
       (v.items || []).forEach((x) => misc.appendChild(smallBtn(`${x.name} ×${x.left}`, 'ghost', () => act({ type: 'item', item: x.id }))));
-      const flee = smallBtn(v.kind === 'duel' ? 'Yield' : 'Flee', 'ghost danger-btn', function () {
+      const flee = smallBtn(v.kind === 'duel' || v.kind === 'tournament' ? 'Yield' : 'Flee', 'ghost danger-btn', function () {
         armed(this, v.kind === 'monster' ? 'Tap again to run' : 'Tap again — counts as a loss', () => act({ type: 'flee' }));
       });
       misc.appendChild(flee);
@@ -2740,6 +2825,7 @@
       loadNpcSects();
       loadRaid();
       loadWar();
+      loadTour();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
