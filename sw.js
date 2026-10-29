@@ -1,5 +1,5 @@
 // Offline support. Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = 'v30';
+const VERSION = 'v31';
 const CACHE = `cultivation-${VERSION}`;
 const SHELL = [
   './',
@@ -43,14 +43,14 @@ self.addEventListener('fetch', (e) => {
   // Page loads: always go to the network; use the saved copy only when offline.
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(clean).catch(() => caches.match('./index.html').then((r) => r || caches.match('./')))
+      fetch(req, { cache: 'no-cache' }).then(clean).catch(() => caches.match('./index.html').then((r) => r || caches.match('./')))
     );
     return;
   }
 
   // App files: network first, keep a copy for offline.
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then(clean)
       .then((res) => {
         if (res && res.ok) {
