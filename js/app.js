@@ -1359,10 +1359,29 @@
     const d = await adCall('admin_get', { p_char: id });
     if (d) renderAdChar(d);
   }
+  const ROOT_GRADES = [['Mutant', 2.2, 'Mutant (×2.2)'], ['Heavenly', 2.0, 'Heavenly (×2.0)'], ['Earth', 1.5, 'Earth (×1.5)'], ['Human', 1.2, 'Human (×1.2)'], ['Mixed', 1.0, 'Mixed, 4 roots (×1.0)'], ['Mixed', 0.8, 'Mixed, 5 roots (×0.8)']];
+  const ROOT_ELS = [['Metal', '金'], ['Wood', '木'], ['Water', '水'], ['Fire', '火'], ['Earth', '土'], ['Lightning', '雷'], ['Ice', '冰'], ['Nature', '生']];
+  function pickRoots(current, done) {
+    const chosen = new Set(String(current || '').split(',').map((x) => x.trim()).filter(Boolean));
+    const ov = document.createElement('div');
+    ov.className = 'modal-ov';
+    ov.innerHTML = `<div class="modal-box"><h4 class="card-title">Spirit roots</h4><p class="muted small-text">Tap elements to turn them on or off. Lightning, Ice and Nature are mutant roots.</p>
+      <div class="el-grid">${ROOT_ELS.map(([e, c]) => `<button type="button" class="el-chip ${chosen.has(e) ? 'on' : ''}" data-e="${e}"><span>${c}</span>${e}</button>`).join('')}</div>
+      <div class="war-form"><button type="button" class="btn ghost small" data-x="cancel">Cancel</button><button type="button" class="btn primary small" data-x="ok">Done</button></div></div>`;
+    ov.querySelectorAll('.el-chip').forEach((b) => b.onclick = () => { const e = b.dataset.e; if (chosen.has(e)) chosen.delete(e); else chosen.add(e); b.classList.toggle('on', chosen.has(e)); });
+    ov.onclick = (ev) => { if (ev.target === ov) ov.remove(); };
+    ov.querySelector('[data-x=cancel]').onclick = () => ov.remove();
+    ov.querySelector('[data-x=ok]').onclick = () => {
+      if (!chosen.size) return toast('Pick at least one element.');
+      ov.remove();
+      done(ROOT_ELS.map((x) => x[0]).filter((e) => chosen.has(e)));
+    };
+    document.body.appendChild(ov);
+  }
   const AD_FIELDS = [
     ['realm', 'Realm (1–10)', 'number'], ['stage', 'Stage (1–10)', 'number'], ['qi', 'Qi', 'number'], ['spirit_stones', 'Spirit stones', 'number'],
     ['stamina', 'Stamina', 'number'], ['free_points', 'Free stat points', 'number'],
-    ['spirit_root', 'Spirit roots (comma separated)', 'text'], ['root_grade', 'Root grade', 'text'], ['root_multiplier', 'Root multiplier', 'number'],
+    ['spirit_root', 'Spirit roots', 'roots'], ['root_grade', 'Root grade', 'grade'], ['root_multiplier', 'Root multiplier', 'number'],
     ['combat_class', 'Class', 'select:,swordsman,body,spellcaster,soul,healer'], ['class_level', 'Class level', 'number'], ['class_cap', 'Class cap', 'select:25,50,75,99,100'],
     ['profession', 'Profession', 'select:,gatherer,alchemist,blacksmith,talisman,array'], ['prof_level', 'Profession level', 'number'], ['prof_cap', 'Profession cap', 'select:25,50,75,99,100'],
     ['tox_temp', 'Toxicity', 'number'], ['tox_perm', 'Permanent toxicity', 'number'], ['name', 'Character name', 'text']
@@ -1378,7 +1397,11 @@
       ${d.banned_until ? `<p class="hurt small-text">Banned until ${new Date(d.banned_until).toLocaleString()} — ${esc(d.ban_reason || 'no reason')}</p>` : ''}
       <div class="war-form" id="ad-quick"></div>
       <h4 class="card-title ad-sub">Edit character</h4>
-      <div class="ad-grid">${AD_FIELDS.map(([k, l, t]) => `<label><span>${l}</span>${t.startsWith('select:')
+      <div class="ad-grid">${AD_FIELDS.map(([k, l, t]) => `<label><span>${l}</span>${t === 'roots'
+        ? `<input type="hidden" data-k="${k}" value="${esc(String(val(k)))}"><button type="button" class="ad-roots" id="ad-roots">${esc(String(val(k))) || '— none —'}</button>`
+        : t === 'grade'
+        ? `<select class="mini-select" data-k="${k}" id="ad-grade">${ROOT_GRADES.map(([g, m, lbl], i) => `<option value="${g}" data-m="${m}" ${d.root_grade === g && (ROOT_GRADES.findIndex((x) => x[0] === g && Number(x[1]) === Number(d.root_multiplier)) === i || (ROOT_GRADES.findIndex((x) => x[0] === g && Number(x[1]) === Number(d.root_multiplier)) < 0 && ROOT_GRADES.findIndex((x) => x[0] === g) === i)) ? 'selected' : ''}>${lbl}</option>`).join('')}${ROOT_GRADES.some((x) => x[0] === d.root_grade) ? '' : `<option value="${esc(d.root_grade || '')}" selected>${esc(d.root_grade || '—')}</option>`}</select>`
+        : t.startsWith('select:')
         ? `<select class="mini-select" data-k="${k}">${t.slice(7).split(',').map((o) => `<option value="${o}" ${String(val(k)) === o ? 'selected' : ''}>${o || '— none —'}</option>`).join('')}</select>`
         : `<input data-k="${k}" type="${t}" value="${esc(String(val(k)))}" ${t === 'number' ? 'inputmode="decimal" step="any"' : ''}>`}</label>`).join('')}
         <label><span>Teleport to</span><select class="mini-select" data-k="region_id">${(world ? world.regions : []).map((r) => `<option value="${r.id}" ${r.id === d.region_id ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select></label>
@@ -1394,6 +1417,18 @@
         <button class="btn danger-btn small" id="ad-ban">Ban</button>${d.banned_until ? '<button class="btn ghost small" id="ad-unban">Unban</button>' : ''}</div>
       <h4 class="card-title ad-sub">History</h4>
       <ul class="war-log">${d.log.map((l) => `<li><span class="muted">${new Date(l.at).toLocaleString()}</span> · ${esc(l.by || '')} ${esc(l.action)}${l.detail ? ` — ${esc(l.detail)}` : ''}</li>`).join('') || '<li class="muted">No admin actions yet.</li>'}</ul>`;
+    box.querySelector('#ad-grade').onchange = (e) => {
+      const m = e.target.selectedOptions[0].dataset.m;
+      if (m) box.querySelector('[data-k=root_multiplier]').value = m;
+    };
+    box.querySelector('#ad-roots').onclick = () => pickRoots(box.querySelector('[data-k=spirit_root]').value, (list) => {
+      box.querySelector('[data-k=spirit_root]').value = list.join(', ');
+      box.querySelector('#ad-roots').textContent = list.join(', ') || '— none —';
+      // suggest the matching grade (still changeable)
+      const g = list.length === 1 && ['Lightning', 'Ice', 'Nature'].includes(list[0]) ? 0 : list.length === 1 ? 1 : list.length === 2 ? 2 : list.length === 3 ? 3 : list.length === 4 ? 4 : list.length >= 5 ? 5 : -1;
+      const sel = box.querySelector('#ad-grade');
+      if (g >= 0) { sel.selectedIndex = g; sel.onchange({ target: sel }); }
+    });
     const q = $('#ad-quick');
     const quick = (label, key, msg) => q.appendChild(smallBtn(label, 'ghost', async () => { const r = await adCall('admin_update', { p_char: d.id, p_changes: { [key]: true } }, msg); if (r) renderAdChar(r); }));
     quick('Full heal', 'heal', 'Healed.');
