@@ -1210,6 +1210,29 @@
     });
   }
 
+  // ---------- NPC sects based here ----------
+  const TIER = { easy: ['Easy', 'qi'], medium: ['Medium', 'item'], hard: ['Hard', 'bad'] };
+  async function loadNpcSects() {
+    const { data } = await sb.rpc('npc_sects_here');
+    const list = data || [];
+    $('#nsect-card').hidden = !list.length;
+    const ul = $('#nsect-list');
+    ul.innerHTML = '';
+    list.forEach((x) => {
+      const cd = x.cooldown_until && new Date(x.cooldown_until).getTime() > serverNow();
+      const b = smallBtn(cd ? `Again in ${duration(secsLeft(x.cooldown_until))}` : x.party_size > 1 ? `Challenge with party (${x.party_size})` : 'Challenge', 'primary', function () {
+        armed(this, 'Tap again to challenge', async () => {
+          const r = await sectCall('challenge_npc_sect', { p_sect: x.id });
+          if (r) openBattle(r.battle, `You challenge ${r.sect}!`);
+        });
+      });
+      b.disabled = cd;
+      ul.appendChild(personRow(`<strong>${esc(x.name)}</strong>
+        <div class="tags"><span class="gain ${TIER[x.tier][1]} tmp">${TIER[x.tier][0]}</span><span class="npc-tag">${x.temperament}</span></div>
+        <span class="muted small-text">“${esc(x.motto)}”</span>`, [b]));
+    });
+  }
+
   // ---------- Party ----------
   let partyData = null;
   async function loadParty() {
@@ -2394,7 +2417,7 @@
     const enemies = v.sides.filter((x) => (x.team !== undefined ? x.team !== myTeam : x !== me));
     if (bTarget && !(enemies.find((x) => x.idx === bTarget && x.alive))) bTarget = null;
     const foe = (bTarget && enemies.find((x) => x.idx === bTarget)) || enemies.find((x) => x.focus && x.alive) || enemies.find((x) => x.alive !== false) || v.sides[2 - v.me];
-    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : 'Ambush';
+    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : v.kind === 'npc_sect' ? 'Sect challenge' : 'Ambush';
     $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
     const fightersEl = document.querySelector('#pane-battle .fighters');
     if (v.team_battle) {
@@ -2607,6 +2630,7 @@
       loadDuels();
       loadGuidance();
       loadParty();
+      loadNpcSects();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
