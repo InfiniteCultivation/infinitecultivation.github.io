@@ -323,3 +323,17 @@ Decisions agreed with the owner, to build into later milestones.
 - Owner confirmed: THREE set NPC sects per continent — Easy, Medium, Hard. The original five land-holding sects are each continent's Hard sect; new Easy/Medium sects: Bamboo Grove Hall / Iron Mountain Clan (Azure), Willow Dew Pavilion / Ancient Beast Clan (Verdant), Sand Wolf Gang / Red Lotus Temple (desert), Snow Hare Lodge / Ice Fang Clan (snow), Starfall Wanderers / Heavenly Script Academy (central).
 - Challenge a sect at its home region (World › "Sects based here"), alone or as party leader with the whole party present. Defenders mirror the challengers one-for-one: Easy 75%, Medium 100%, Hard 125% of each challenger's health, stats, skill and art levels. Rewards per member scale ×1 / ×2.2 / ×4 (qi, stones) with better item drops per tier. Each player can challenge each sect once per 20 hours. 15 stamina each.
 - Sect wars (owner, pending build): take all of Claude's suggestions EXCEPT allies joining a war in progress; instead, when war is declared the defender may bring allies, and then the attacker may counter by bringing allies too.
+
+## Step 19 — NPC raids (built)
+- Each player sect has a small hourly chance (2%) to be raided; admins can trigger one (`admin_spawn_raid`).
+- A raid = 2–6 raiders (one per member, capped) levelled around the sect's average, roaming the sect's wild lands (or home / nearby wilds) and moving hourly. Persistent HP + regeneration as other NPCs.
+- Raiders ambush that sect's members: 50% when exploring where they are, 40% on arrival from travel. They show as 🔥 in Cultivators nearby.
+- Kill them all in 48h → loot (100 × raiders × top realm) to the treasury. Otherwise they plunder 15% of it and leave.
+
+## Step 20 — Sect wars (built)
+- Leader declares on a non-allied sect with a stake: reparations (20% of loser's treasury) or one region the target controls.
+- Target leader has 24h: decline (pays 5% of treasury; silence = decline) or accept, optionally calling allies; the attacker may then call up to as many allies within 1h.
+- 1h countdown, then 48h war. Each side's pool = 100 × its members. Wins between enemies move points: duel 10, ambush 3, × realm-gap factor (0.5–2).
+- Idle: a side that starts no fight for an hour loses 5% of its starting pool, at most 12 times.
+- Enemies' ambush cooldown drops to 30 min. After a war fight, towns refuse you for 5 min.
+- A pool at 0 ends it early; otherwise the higher pool wins at the end (tie = draw). Home banner + Sect › War card with scoreboard.

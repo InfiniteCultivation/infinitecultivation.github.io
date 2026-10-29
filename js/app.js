@@ -193,6 +193,7 @@
       loadWorld().then(tick).catch(() => {});
       loadDuels();
       loadRaid();
+      loadWar();
       refreshDmBadge();
       checkBattle();
     } catch (e) {
@@ -829,6 +830,92 @@
     if (!data) { state.sect = null; return loadSect(); }
     sectData = data;
     renderMySect(data);
+    loadWar();
+  }
+
+  // ---------- Sect wars ----------
+  async function loadWar() {
+    const { data } = await sb.rpc('my_war');
+    renderWar(data);
+  }
+
+  function warBanner(d) {
+    const al = $('#war-alert');
+    const w = d && d.war;
+    al.hidden = !w;
+    if (!w) return;
+    const foe = (w.my_side === 'A' ? w.defenders : w.attackers)[0].name;
+    const mine = w.my_side === 'A' ? w.a_pool : w.d_pool, theirs = w.my_side === 'A' ? w.d_pool : w.a_pool;
+    const line = w.status === 'active' ? `Score ${mine} : ${theirs} · ${duration(secsLeft(w.ends_at))} left`
+      : w.status === 'countdown' ? `Begins in ${duration(secsLeft(w.starts_at))}`
+      : w.status === 'counter' ? 'Allies are being called' : w.can_respond ? 'Your leader must answer' : 'Waiting for an answer';
+    al.innerHTML = `<span class="a-ico">⚔</span><span><strong>War with ${esc(foe)}</strong><small>${line} · tap for details</small></span>`;
+    al.onclick = () => showPane('pane-sect');
+  }
+
+  function renderWar(d) {
+    warBanner(d);
+    const card = $('#war-card');
+    const body = $('#war-body');
+    if (!d || !card) return;
+    const w = d.war;
+    card.hidden = !w && !d.leader && !d.last;
+    body.innerHTML = '';
+    const p = (html) => { const e = document.createElement('div'); e.innerHTML = html; body.appendChild(e); return e; };
+    if (!w) {
+      if (d.last) p(`<p class="muted small-text">Last war: ${esc(d.last.result)}</p>`);
+      if (!d.leader) return;
+      const targets = d.targets.filter((t) => !t.ally && !t.busy);
+      p(`<p class="muted small-text">Declare war on another sect. They may accept (calling allies, which lets you call as many) or decline and pay you 5% of their treasury. After a 1-hour countdown the war lasts 48 hours: beat enemies to take points — a duel is worth about 3× an ambush, and beating a stronger foe is worth more. A side that starts no fight for an hour loses points. The winner takes the stake.</p>`);
+      if (!targets.length) { p('<p class="muted small-text">There is no sect you can declare war on right now.</p>'); return; }
+      const box = p(`<div class="war-form">
+        <select class="mini-select" id="war-target">${targets.map((t) => `<option value="${t.id}">${esc(t.name)} (${t.members})</option>`).join('')}</select>
+        <select class="mini-select" id="war-stake"></select>
+        <button class="btn danger-btn small" id="btn-war">Declare war</button></div>`);
+      const fillStake = () => {
+        const t = targets.find((x) => x.id === $('#war-target').value);
+        $('#war-stake').innerHTML = '<option value="r">Stake: reparations (20% of treasury)</option>' + t.regions.map((r) => `<option value="${r.id}">Stake: take ${esc(r.name)}</option>`).join('');
+      };
+      fillStake();
+      $('#war-target').onchange = fillStake;
+      $('#btn-war').onclick = function () {
+        armed(this, 'Tap again to declare war', async () => {
+          const v = $('#war-stake').value;
+          const r = await sectCall('war_declare', { p_target: $('#war-target').value, p_stake: v === 'r' ? 'reparations' : 'region', p_region: v === 'r' ? null : Number(v) }, 'War declared.');
+          if (r) renderWar(r);
+        });
+      };
+      return;
+    }
+    const side = (list, tag) => list.map((x, i) => `${i ? '◆ ' : ''}${esc(x.name)} <span class="muted">(${x.members})</span>`).join(', ');
+    const mineA = w.my_side === 'A';
+    const status = { declared: `Declared — ${w.can_respond ? 'you must answer' : 'waiting for an answer'} within ${duration(secsLeft(w.phase_until))}.`,
+      counter: `Accepted with allies — ${w.can_counter ? 'you may call allies' : 'the attacker may call allies'} within ${duration(secsLeft(w.phase_until))}.`,
+      countdown: `Begins in ${duration(secsLeft(w.starts_at))}.`, active: `${duration(secsLeft(w.ends_at))} left.` }[w.status];
+    const total = Math.max(1, w.a_pool + w.d_pool);
+    p(`<div class="war-sides"><div class="${mineA ? 'mine' : ''}"><span class="eyebrow">Attackers</span>${side(w.attackers)}</div><div class="vs">vs</div><div class="${mineA ? '' : 'mine'}"><span class="eyebrow">Defenders</span>${side(w.defenders)}</div></div>
+      <p class="small-text">${status} Stake: ${w.stake === 'region' ? `the region ${esc(w.stake_region)}` : 'reparations (20% of the loser’s treasury)'}.</p>`);
+    if (w.status === 'active') {
+      const myIdle = mineA ? w.a_idle_at : w.d_idle_at;
+      p(`<div class="war-score"><span>${w.a_pool}</span><div class="war-bar"><i style="width:${(100 * w.a_pool / total).toFixed(1)}%"></i></div><span>${w.d_pool}</span></div>
+        <p class="muted small-text">Your side must start a fight (an ambush, or a duel you challenged) within <strong>${duration(Math.max(0, secsLeft(myIdle)))}</strong> or lose points.${d.lock_until ? ` Towns are closed to you for ${duration(secsLeft(d.lock_until))}.` : ''}</p>`);
+      if (w.fights.length) p(`<ul class="war-log">${w.fights.map((f) => `<li><strong>${esc(f.w)}</strong> beat ${esc(f.l)} <span class="muted">(${f.kind}, +${f.pts} for ${f.side === 'A' ? 'attackers' : 'defenders'})</span></li>`).join('')}</ul>`);
+    }
+    if (w.can_respond || w.can_counter) {
+      const allies = (w.allies || []).filter((a) => !a.busy);
+      const limit = w.can_counter ? w.counter_limit : allies.length;
+      if (allies.length) p(`<p class="muted small-text">${w.can_counter ? `Call up to ${limit} of your allies:` : 'Call allies to fight beside you (the attacker may then call as many):'}</p>
+        <div class="war-allies">${allies.map((a) => `<label><input type="checkbox" value="${a.id}"> ${esc(a.name)}</label>`).join('')}</div>`);
+      const picked = () => [...body.querySelectorAll('.war-allies input:checked')].map((x) => x.value).slice(0, limit);
+      const row = document.createElement('div'); row.className = 'war-form';
+      if (w.can_respond) {
+        row.append(smallBtn('Accept war', 'primary', function () { armed(this, 'Tap again to accept', async () => { const r = await sectCall('war_respond', { p_war: w.id, p_accept: true, p_allies: picked() }); if (r) renderWar(r); }); }),
+          smallBtn('Decline (pay 5%)', 'ghost', function () { armed(this, 'Tap again to decline', async () => { const r = await sectCall('war_respond', { p_war: w.id, p_accept: false, p_allies: [] }); if (r) renderWar(r); }); }));
+      } else {
+        row.append(smallBtn('Confirm allies', 'primary', async () => { const r = await sectCall('war_counter', { p_war: w.id, p_allies: picked() }); if (r) renderWar(r); }));
+      }
+      body.appendChild(row);
+    }
   }
 
   async function sectCall(fn, args, okMsg) {
@@ -1123,7 +1210,7 @@
   });
 
   // ---------- PvP ----------
-  const REL_MARK = { mine: '★ ', ally: '◆ ', other: '', none: '' };
+  const REL_MARK = { mine: '★ ', ally: '◆ ', enemy: '⚔ ', other: '', none: '' };
 
   async function loadOpponents() {
     const btn = $('#btn-look');
@@ -1173,7 +1260,7 @@
     });
     list.forEach((o) => {
       const sect = o.sect ? `<span class="rel r-${o.relation}">${REL_MARK[o.relation]}${esc(o.sect)}</span>` : '<span class="rel r-none">No sect</span>';
-      const warn = o.relation === 'mine' ? '<span class="warn-tag">Same sect</span>' : o.relation === 'ally' ? '<span class="warn-tag">Ally</span>' : '';
+      const warn = o.relation === 'mine' ? '<span class="warn-tag">Same sect</span>' : o.relation === 'ally' ? '<span class="warn-tag">Ally</span>' : o.relation === 'enemy' ? '<span class="enemy-tag">Enemy</span>' : '';
       const li = personRow(`<strong>${esc(o.name)}</strong>
         <div class="tags">${sect}${warn}<span class="odds o-${o.odds.toLowerCase()}">${o.odds}</span></div>
         <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · ${esc(o.root)} root${o.secluded ? ' · in seclusion' : ''}${o.hurt > 0 ? ` · <span class="hurt">wounded ${o.hurt}%</span>` : ''}</span>
@@ -2652,6 +2739,7 @@
       loadParty();
       loadNpcSects();
       loadRaid();
+      loadWar();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }

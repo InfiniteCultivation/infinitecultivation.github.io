@@ -651,3 +651,18 @@ button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer;
 /* NPC raids */
 .raid-banner { background: rgba(220, 80, 40, .14); border: 1px solid rgba(220, 80, 40, .45); }
 .raid-card { border-color: rgba(220, 80, 40, .45); }
+/* Sect wars */
+.war-banner { background: rgba(255, 122, 107, .12); border: 1px solid rgba(255, 122, 107, .45); }
+.war-card { border-color: rgba(255, 122, 107, .4); }
+.rel.r-enemy { color: #fff; background: rgba(220, 70, 60, .55); }
+.enemy-tag { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 99px; color: #fff; background: rgba(220, 70, 60, .7); }
+.war-form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.war-form .mini-select { flex: 1 1 100%; width: 100%; max-width: none; min-width: 0; }
+.war-sides { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 6px; }
+.war-sides > div { font-size: .85rem; } .war-sides .eyebrow { display: block; margin-bottom: 2px; }
+.war-sides .mine { color: var(--gold-2); } .war-sides .vs { color: var(--muted); font-weight: 700; }
+.war-score { display: flex; align-items: center; gap: 10px; font-weight: 700; margin: 8px 0; }
+.war-bar { flex: 1; height: 10px; border-radius: 99px; background: rgba(255, 122, 107, .55); overflow: hidden; }
+.war-bar i { display: block; height: 100%; background: var(--gold-2); }
+.war-log { list-style: none; margin: 8px 0 0; padding: 0; font-size: .8rem; display: grid; gap: 4px; }
+.war-allies { display: grid; gap: 6px; margin-top: 6px; font-size: .9rem; }
