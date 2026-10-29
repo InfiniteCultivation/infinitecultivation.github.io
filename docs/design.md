@@ -175,3 +175,13 @@ Decisions agreed with the owner, to build into later milestones.
   Growth follows cap − (cap − value) × e^(−20 × (1 + level/100) × hours / cap): fast far from the cap, very slow near it.
 - Body cultivation level (0–100) rises 0.5 per hour of physical training; Mental level the same for mental stats.
 - Stats do not affect fights yet — that comes with skills, arts and the new combat (next step).
+
+## Combat loadout (owner design, Oct 29 2026)
+- Attack: 1 PRIMARY attack skill (the idle attack) + 3 attack UTILITY skills that empower it (multi-hit that grows 2→3→4 hits with level, add an element the opponent may be weak to, etc.).
+- Defense: 1 PRIMARY defense skill + 3 defense UTILITY skills (dodge, parry, turn a block into a weak counter, etc.).
+- 3 PASSIVE skills (faster energy regen, tiny chance to recover health; higher tiers e.g. life leech).
+- PROFESSION skills, always tied to the profession; some used outside combat (gatherer: Search based on Perception, multi-gather chance based on Dexterity; swordsman: sword mastery bonus when wielding a sword, bleed damage).
+- Arts: up to 6 equipped, cost energy.
+- Everyone starts with a basic kit.
+- Manuals: very rarely found exploring; lowest-quality manuals sold in towns; upgraded sects with a store get better manuals rotating in from traveling merchants.
+- Derived pools should mix physical and mental stats so players can't min-max easily (owner suggested Stamina from Constitution + Willpower).
