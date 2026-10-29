@@ -171,3 +171,24 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,178,94,0
   padding: 10px 16px; border-radius: 10px; z-index: 10; max-width: calc(100% - 32px); font-size: .9rem;
 }
 #toast[hidden] { display: none; }
+
+/* Milestone 2: cultivation */
+.meter-sub { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; color: var(--muted); margin-top: 6px; }
+.meter-sub .warn { color: var(--gold-2); }
+.meter-fill.full { background: linear-gradient(90deg, var(--gold), var(--gold-2)); box-shadow: 0 0 14px rgba(240,212,138,0.6); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .75; } }
+#btn-breakthrough { margin-top: 16px; }
+.chance { margin: 14px 0 0; font-size: .82rem; color: var(--gold-2); text-align: center; }
+.chance[hidden] { display: none; }
+.orb-sub { font-size: .65rem; color: #7c8496; margin-top: -4px; white-space: nowrap; }
+.card-title { margin: 0 0 10px; font-family: 'Cinzel', serif; color: var(--gold-2); font-size: .95rem; letter-spacing: .04em; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.log li { display: flex; justify-content: space-between; gap: 10px; font-size: .85rem; padding: 8px 10px; background: rgba(0,0,0,0.22); border-radius: 10px; }
+.log li time { color: var(--muted); font-size: .75rem; white-space: nowrap; }
+.log li.major.ok span { color: var(--gold-2); }
+.log li.major.fail span { color: var(--danger); }
+#home-log-card[hidden] { display: none; }
+.flash-ok { animation: flashok 1s ease; }
+.flash-fail { animation: flashfail 1s ease; }
+@keyframes flashok { 0% { box-shadow: 0 0 0 rgba(240,212,138,0); } 30% { box-shadow: 0 0 60px rgba(240,212,138,0.7); } 100% { box-shadow: 0 10px 40px rgba(0,0,0,0.35); } }
+@keyframes flashfail { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
