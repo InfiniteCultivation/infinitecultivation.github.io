@@ -116,3 +116,14 @@ Decisions agreed with the owner, to build into later milestones.
 - Boosts/penalties stack and only count while cultivating.
 - TO DO: fights must also depend on skills, martial arts and magic arts (owner requirement) — battle_rating is the single place to add them.
 - Later: chat, where players can arrange duels.
+
+## Order of work
+- Admin panel is built LAST, once every game system exists, so it covers everything.
+
+## Stats & arts (owner design, Oct 29 2026)
+- Arts are combat abilities that cost qi.
+- Martial arts use physical stats; magic arts use mental stats.
+- Physical defense: Constitution, Endurance.
+- Mental defense: Willpower, Fortitude.
+- Physical attack: Strength, Agility, Dexterity.
+- Mental attack: Intelligence, Perception, Soul Power.
