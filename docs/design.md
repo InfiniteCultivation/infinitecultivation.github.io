@@ -310,3 +310,10 @@ Decisions agreed with the owner, to build into later milestones.
 ### Group combat (planned, needed by the above)
 - Teams of up to 3. Coin flip for who goes first. Order alternates by join order: A1 (leader), B1 (leader), A2, B2, A3, B3. Knocked-out fighters leave the rotation.
 - Reaction arts can protect teammates when they are attacked. Physical classes can have passives that let them become the target of an attack aimed at a teammate (tanking).
+
+## Step 17: group combat + parties (built)
+- Battle engine now supports two teams of 1–3. Order alternates A1, B1, A2, B2, A3, B3 (coin toss decides who leads; 1v1 still uses initiative). Knocked-out or fled fighters leave the rotation; a side loses when nobody on it is standing. 15-round cap, then the side with the larger share of its total health wins.
+- Targeting: each fighter has a focus (defaults to the enemy leader, then the next standing enemy). Players tap an enemy to target it; arts go at the target.
+- Reactions: when an art targets someone, the target may react first; if they pass, standing teammates with usable reactions may react to shield them (one reaction per action).
+- Tanking: Body Cultivators get a "guard" passive (20% × class scale) to step in front of attacks aimed at a teammate (auto-exchange blows and arts).
+- Parties: up to 3, formed by invite in the same region (World › Cultivators nearby › Invite to party; answer in World › Party). Leader can remove members; leadership passes on when the leader leaves. "Hunt together": one beast per member, everyone in the same region, 20 stamina each; rewards ×1.5 per member on a win; on a loss everyone loses 5% qi and wakes in town.

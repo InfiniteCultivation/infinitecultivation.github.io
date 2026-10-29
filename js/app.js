@@ -1188,6 +1188,8 @@
         if (d) { renderDuels(d); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
       });
       const guide = smallBtn('Seek guidance', 'ghost', () => openGuidance(o));
+      const inv = smallBtn('Invite to party', 'ghost', async () => { const r = await sectCall('party_invite', { p_target: o.id }, `Party invitation sent to ${o.name}.`); if (r) renderParty(r); });
+      box.appendChild(inv);
       box.append(atk, bet, duel, guide);
       const sup = smallBtn('Support', 'ghost heal-btn', () => {
         const open = li.querySelector('.support-pick');
@@ -1206,6 +1208,40 @@
       li.appendChild(box);
       ul.appendChild(li);
     });
+  }
+
+  // ---------- Party ----------
+  let partyData = null;
+  async function loadParty() {
+    const { data } = await sb.rpc('my_party');
+    if (data) renderParty(data);
+  }
+  function renderParty(d) {
+    partyData = d;
+    const card = $('#party-card');
+    const ul = $('#party-list');
+    ul.innerHTML = '';
+    const p = d.party;
+    card.hidden = !p && !d.invites.length;
+    d.invites.forEach((x) => ul.appendChild(personRow(`<strong>${esc(x.from)} invites you to their party</strong>`, [
+      smallBtn('Join', 'primary', async () => { const r = await sectCall('party_respond', { p_invite: x.id, p_accept: true }, 'You joined the party.'); if (r) renderParty(r); }),
+      smallBtn('Decline', 'ghost', async () => { const r = await sectCall('party_respond', { p_invite: x.id, p_accept: false }); if (r) renderParty(r); })
+    ])));
+    const acts = $('#party-actions');
+    acts.innerHTML = '';
+    if (!p) return;
+    const lead = state && p.leader === state.id;
+    p.members.forEach((m) => {
+      const btns = [];
+      if (lead && m.id !== state.id) btns.push(smallBtn('Remove', 'ghost', async () => { const r = await sectCall('party_kick', { p_char: m.id }); if (r) renderParty(r); }));
+      ul.appendChild(personRow(`<strong>${m.id === p.leader ? '♛ ' : ''}${esc(m.name)}${state && m.id === state.id ? ' <small class="muted">(you)</small>' : ''}</strong>
+        <span class="muted small-text">${REALMS[m.realm - 1]} ${m.stage}${m.class && CLASSES[m.class] ? ` · ${CLASSES[m.class].name}` : ''} · ${m.here ? 'here' : esc(m.region)}${m.hurt > 0 ? ` · <span class="hurt">wounded ${m.hurt}%</span>` : ''}</span>`, btns));
+    });
+    if (lead) acts.appendChild(smallBtn(`Hunt together (−${state.explore_cost * 2} stamina each)`, 'primary', async () => {
+      const r = await sectCall('party_hunt', {});
+      if (r) openBattle(r.battle, 'Your party sets out on a hunt!');
+    }));
+    acts.appendChild(smallBtn('Leave party', 'ghost', function () { armed(this, 'Tap again to leave', async () => { const r = await sectCall('party_leave', {}, 'You left the party.'); if (r) renderParty(r); }); }));
   }
 
   // ---------- Masters ----------
@@ -2274,6 +2310,16 @@
 
   // ---------- Battle ----------
   let duelWaiting = false;
+  let bTarget = null;
+  function teamCard(x, isMe, isEnemy, v, targeted) {
+    const pct = x.hpmax > 0 ? Math.max(0, Math.min(100, (x.hp / x.hpmax) * 100)) : 0;
+    const turn = v.active === x.idx && v.status === 'active';
+    return `<div class="tcard${x.alive ? '' : ' down'}${targeted ? ' targeted' : ''}${turn ? ' turn' : ''}"${isEnemy ? ` data-idx="${x.idx}"` : ''}>
+      <div class="tc-top"><span class="tc-name">${esc(x.name)}${isMe ? ' <small>(you)</small>' : ''}</span><span class="tc-hp">${x.alive ? `${fmt(x.hp)}/${fmt(x.hpmax)}` : (x.gone ? 'fled' : 'down')}</span></div>
+      <div class="meter-track thin"><div class="meter-fill hp" style="width:${pct}%"></div></div>
+      ${isMe && x.enmax > 0 ? `<div class="meter-track thin en-line"><div class="meter-fill en" style="width:${(x.en / x.enmax) * 100}%"></div></div>` : ''}
+    </div>`;
+  }
   let bv = null;           // current battle view from the server
   let bPoll = null;         // polling while waiting on the opponent
   let bTick = null;         // countdown
@@ -2287,6 +2333,7 @@
   function openBattle(view, intro) {
     if (!view) return;
     bIntro = intro || '';
+    bTarget = null;
     showPane('pane-battle');
     renderBattle(view);
   }
@@ -2343,11 +2390,30 @@
     bv = v;
     stopBattle();
     const me = v.sides[v.me - 1];
-    const foe = v.sides[2 - v.me];
-    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : 'Ambush';
+    const myTeam = v.my_team || v.me;
+    const enemies = v.sides.filter((x) => (x.team !== undefined ? x.team !== myTeam : x !== me));
+    if (bTarget && !(enemies.find((x) => x.idx === bTarget && x.alive))) bTarget = null;
+    const foe = (bTarget && enemies.find((x) => x.idx === bTarget)) || enemies.find((x) => x.focus && x.alive) || enemies.find((x) => x.alive !== false) || v.sides[2 - v.me];
+    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : 'Ambush';
     $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
-    $('#bt-me').innerHTML = fighterHtml(me, true);
-    $('#bt-foe').innerHTML = fighterHtml(foe, false);
+    const fightersEl = document.querySelector('#pane-battle .fighters');
+    if (v.team_battle) {
+      fightersEl.classList.add('teams');
+      const allies = v.sides.filter((x) => x.team === myTeam);
+      $('#bt-me').innerHTML = '<p class="team-label">Your side</p>' + allies.map((x) => teamCard(x, x.idx === v.me, false, v)).join('');
+      $('#bt-foe').innerHTML = '<p class="team-label">Enemies · tap to target</p>' + enemies.map((x) => teamCard(x, false, true, v, foe && x.idx === foe.idx)).join('');
+      document.querySelectorAll('#bt-foe .tcard[data-idx]').forEach((el) => el.addEventListener('click', () => {
+        const idx = Number(el.dataset.idx);
+        const t = v.sides.find((x) => x.idx === idx);
+        if (!t || !t.alive) return;
+        bTarget = idx;
+        renderBattle(bv);
+      }));
+    } else {
+      fightersEl.classList.remove('teams');
+      $('#bt-me').innerHTML = fighterHtml(me, true);
+      $('#bt-foe').innerHTML = fighterHtml(foe, false);
+    }
     const ab = $('#bt-auto');
     ab.textContent = v.auto ? 'Auto: On — tap to take control' : 'Auto: Off';
     ab.classList.toggle('on', !!v.auto);
@@ -2376,7 +2442,7 @@
         }
         b.innerHTML = `<strong>${esc(a.name)}</strong><small>${a.energy} energy${a.element ? ` · ${esc(a.element)}` : ''}</small>${why ? `<em>${why}</em>` : ''}`;
         b.disabled = !a.usable;
-        b.onclick = () => act({ type: 'art', art: a.id });
+        b.onclick = () => act({ type: 'art', art: a.id, target: bTarget || undefined });
         grid.appendChild(b);
       });
       if (!v.arts.some((a) => a.type !== 'reaction' && a.type !== 'ultimate')) grid.innerHTML = '<p class="muted small-text">No arts equipped — set them up under Character › Arts.</p>';
@@ -2394,7 +2460,7 @@
         ubtn.className = 'btn primary small ult-btn';
         ubtn.textContent = `Unleash · ${u.energy} energy`;
         ubtn.disabled = !u.usable;
-        ubtn.onclick = () => act({ type: 'art', art: u.id });
+        ubtn.onclick = () => act({ type: 'art', art: u.id, target: bTarget || undefined });
         ubar.appendChild(ubtn);
       }
       const misc = $('#bt-misc');
@@ -2411,7 +2477,8 @@
     const rc = $('#bt-react');
     rc.hidden = !(active && v.need === 'reaction' && !v.auto);
     if (!rc.hidden) {
-      $('#bt-react-text').innerHTML = `<strong>${esc(foe.name)}</strong> uses <strong>${esc(v.pending.name)}</strong>${v.pending.element ? ` (${esc(v.pending.element)})` : ''}! Answer it?`;
+      const pend = v.pending || {};
+      $('#bt-react-text').innerHTML = `<strong>${esc(pend.attacker || foe.name)}</strong> uses <strong>${esc(pend.name)}</strong>${pend.element ? ` (${esc(pend.element)})` : ''}${v.team_battle && !pend.target_is_me ? ` on <strong>${esc(pend.target || '')}</strong>` : ''}! ${v.team_battle && !pend.target_is_me ? 'Shield your teammate?' : 'Answer it?'}`;
       const grid = $('#bt-react-arts');
       grid.innerHTML = '';
       v.arts.filter((a) => a.type === 'reaction').forEach((a) => {
@@ -2461,8 +2528,12 @@
   }
 
   function renderBattleResult(v) {
-    const r = v.result || {};
-    const won = v.winner === v.me;
+    let r = v.result || {};
+    const won = v.winner === (v.my_team || v.me);
+    if (r.team && r.members) {
+      const mine = r.members.find((x) => state && x.id === state.id) || {};
+      r = { ...mine, story: r.story, won: r.won };
+    }
     const res = $('#bt-result');
     const bits = [];
     if (r.qi > 0) bits.push(`<span class="gain qi">+${fmt(r.qi)} qi</span>`);
@@ -2535,6 +2606,7 @@
       Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
       loadDuels();
       loadGuidance();
+      loadParty();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
