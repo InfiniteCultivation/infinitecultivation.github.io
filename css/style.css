@@ -482,3 +482,28 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .meter-fill.ment { background: linear-gradient(90deg, #7b6ee0, #b3a6ff); }
 .slim-state.m-training { color: #2a1406; background: #f0b27a; }
 .session-status.m-training { color: #ffcf9e; background: rgba(240,160,90,0.12); border: 1px solid rgba(240,160,90,0.35); }
+
+/* Pools */
+.pools { display: grid; gap: 8px; margin: 10px 0 4px; }
+.pool .meter-label { font-size: .78rem; margin-bottom: 4px; }
+.meter-fill.hp { background: linear-gradient(90deg, #d9534f, #ff8a7a); }
+.meter-fill.en { background: linear-gradient(90deg, #3d8bd9, #7fc3ff); }
+.inj { color: var(--danger); font-weight: 700; }
+
+/* Loadout */
+.loadout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.lo-group { grid-column: 1 / -1; margin: 6px 0 -2px; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lo-slot { appearance: none; font: inherit; color: var(--text); text-align: left; display: grid; gap: 2px; align-content: start; min-height: 74px; padding: 8px; border-radius: 12px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); cursor: pointer; }
+.lo-slot.primary { border-color: rgba(214,178,94,0.45); background: rgba(214,178,94,0.08); }
+.lo-slot.empty { border-style: dashed; opacity: .7; }
+.lo-label { font-size: .6rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.lo-name { font-size: .78rem; font-weight: 600; line-height: 1.2; }
+.lo-lvl { font-size: .66rem; color: var(--gold-2); }
+.loadout .lo-group + .lo-slot.primary { grid-column: span 1; }
+.slot-tag, .el-tag { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,0.06); color: var(--muted); }
+.el-tag { color: #ffcf9e; background: rgba(240,160,90,0.12); }
+.sk-bar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; width: 100%; }
+.meter-fill.sk { background: linear-gradient(90deg, var(--gold), var(--gold-2)); }
+.skills-list li .p-main { width: 100%; }
+#sk-picker[hidden] { display: none; }
+.town-card[hidden] { display: none; }

@@ -185,3 +185,13 @@ Decisions agreed with the owner, to build into later milestones.
 - Everyone starts with a basic kit.
 - Manuals: very rarely found exploring; lowest-quality manuals sold in towns; upgraded sects with a store get better manuals rotating in from traveling merchants.
 - Derived pools should mix physical and mental stats so players can't min-max easily (owner suggested Stamina from Constitution + Willpower).
+
+## Step 7a: skills, pools, market, healer (built)
+- Decisions (owner said "however you like"): arts auto-fire in slot order when energy allows; all fights idle for now (live turn choice later); professions later with crafting.
+- 34 skills: 4 primary attacks, 12 attack utilities (incl. 5 elemental infusions), 3 primary defenses, 10 defense utilities (incl. 5 elemental wards), 8 passives (Life Leech, Iron Will need realm 3).
+- Loadout: attack + 3 utilities, defense + 3 utilities, 3 passives. Starting kit: Basic Punch + Basic Guard.
+- Effects scale with level: 0.5× at level 1, 1× at 50, 1.5× at 100.
+- Proficiency 1–100 with tier caps 25/50/75/99/100. Practice like training (1h taps). Town trainer: Early→Low for 250 stones; higher tiers need a master (not built yet).
+- Manuals are items; read from the Bag to learn the skill. Town markets sell Early manuals (150–300 stones). ~1–3% chance per explore to find a random manual.
+- HP = 10 × (Con + Fort); Energy = 5 × (Soul + Endu); Stamina max = 100 + (Con + Wil − 20)/4. HP regenerates 3%/h; energy 30%/h.
+- Below 25% HP you are too injured to explore. Town healers restore full HP over 5 minutes for 0.2 stones per missing HP.

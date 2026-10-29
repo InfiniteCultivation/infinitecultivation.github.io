@@ -152,6 +152,7 @@
         <div class="card sheet" id="home-card">
           <h2 id="char-name"></h2>
           <p class="realm" id="char-realm"></p>
+          <div class="pools" id="char-pools"></div>
 
           <div class="meter">
             <div class="meter-label"><span>Qi</span><span id="char-qi"></span></div>
@@ -212,7 +213,7 @@
 
         <div class="hub">
           <button class="hub-btn" data-go="pane-stats"><span class="h-ico">力</span>Stats<span class="hub-badge gold" id="hub-points" hidden></span></button>
-          <button class="hub-btn soon-btn" disabled><span class="h-ico">技</span>Skills<small>Coming soon</small></button>
+          <button class="hub-btn" data-go="pane-skills"><span class="h-ico">技</span>Skills</button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">法</span>Arts<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">道</span>Cultivation<br>Styles<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">昇</span>Upgrade<small>Coming soon</small></button>
@@ -239,6 +240,44 @@
           <p class="muted small-text st-help">Each stat is capped by your cultivation stage. Training is fast when a stat is far below its cap and slows as it gets close. Training replaces cultivating while it runs (1 hour per tap). Body and mental cultivation rise as you train, raising caps and training speed.</p>
         </div>
         <div id="st-groups"></div>
+      </div>
+
+      <!-- Skills -->
+      <div class="pane" id="pane-skills">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div class="card">
+          <h4 class="card-title">Combat loadout</h4>
+          <div class="pools" id="sk-pools"></div>
+          <div class="train-banner" id="sk-practice" hidden></div>
+          <div class="loadout" id="sk-loadout"></div>
+          <p class="muted small-text st-help">Your primary attack is your idle attack each turn; utilities empower it. Your primary defense protects you; its utilities add dodges, parries and counters. Passives are always on. Tap a slot to change it.</p>
+        </div>
+        <div class="card" id="sk-picker" hidden>
+          <div class="bag-head"><h4 class="card-title" id="sk-picker-title"></h4><button class="btn ghost small" id="sk-picker-close">Close</button></div>
+          <ul class="people" id="sk-picker-list"></ul>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Learned skills</h4>
+          <p class="muted small-text st-help">Skills rise through tiers: Early 1–25, Low 26–50, Mid 51–75, High 76–99, Peak 100. At the top of a tier a trainer must help you break through. Town trainers teach up to Low; higher tiers need a master.</p>
+          <ul class="people skills-list" id="sk-list"></ul>
+        </div>
+      </div>
+
+      <!-- Market (towns) -->
+      <div class="pane" id="pane-market">
+        <button class="back" data-go="pane-world">‹ World</button>
+        <div class="card">
+          <h4 class="card-title">Town market</h4>
+          <p class="muted small-text" id="mk-note">Low-quality manuals, Early tier. Read a manual from your Bag to learn the skill.</p>
+          <div class="chips" id="mk-tabs">
+            <button class="chip active" data-mk="attack">Attack</button>
+            <button class="chip" data-mk="attack_util">Attack utility</button>
+            <button class="chip" data-mk="defense">Defense</button>
+            <button class="chip" data-mk="defense_util">Defense utility</button>
+            <button class="chip" data-mk="passive">Passive</button>
+          </div>
+          <ul class="people" id="mk-list"></ul>
+        </div>
       </div>
 
       <!-- Trade (auction house) -->
@@ -344,6 +383,15 @@
           </div>
 
           <div class="card story" id="world-result" hidden></div>
+
+          <div class="card town-card" id="town-card" hidden>
+            <h4 class="card-title">Town</h4>
+            <p class="muted small-text" id="town-note"></p>
+            <div class="hub two">
+              <button class="hub-btn" data-go="pane-market"><span class="h-ico">市</span>Market</button>
+              <button class="hub-btn" id="btn-healer"><span class="h-ico">醫</span>Healer<small id="healer-note"></small></button>
+            </div>
+          </div>
 
           <div class="card" id="duels-card" hidden>
             <h4 class="card-title">Duel challenges</h4>

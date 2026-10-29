@@ -200,17 +200,25 @@
     if (state.seclusion_until && new Date(state.seclusion_until).getTime() > t) return 'seclusion';
     if (state.cultivate_until && new Date(state.cultivate_until).getTime() > t) {
       // a training session started after this cultivation tap replaces it
-      if (trainingActive() && new Date(state.training.until).getTime() - TRAIN_SEC * 1000 > new Date(state.cultivate_until).getTime() - 3600 * 1000) return 'training';
+      if (trainingActive() && new Date(trainInfo().until).getTime() - TRAIN_SEC * 1000 > new Date(state.cultivate_until).getTime() - 3600 * 1000) return 'training';
       return 'active';
     }
     if (trainingActive()) return 'training';
     return 'idle';
   }
   const TRAIN_SEC = 3600;
+  // Stat training or skill practice, whichever is running.
+  function trainInfo() {
+    if (!state) return null;
+    if (state.training) return { label: STAT_NAMES[state.training.stat], until: state.training.until };
+    if (state.practice) return { label: state.practice.name, until: state.practice.until };
+    return null;
+  }
   function trainingActive() {
-    if (!state || !state.training) return false;
+    const ti = trainInfo();
+    if (!ti) return false;
     const t = serverNow();
-    const until = new Date(state.training.until).getTime();
+    const until = new Date(ti.until).getTime();
     if (until <= t) return false;
     // a Cultivate tap after training began ends the training
     if (state.cultivate_until) {
@@ -249,7 +257,7 @@
     } else if (mode === 'seclusion') {
       btn.textContent = `In seclusion · ${duration(secsLeft(state.seclusion_until))} left`; btn.disabled = true;
     } else if (mode === 'training') {
-      btn.textContent = `Training ${STAT_NAMES[state.training.stat]} · ${duration(secsLeft(state.training.until))} · tap to cultivate`; btn.disabled = btn.dataset.busy === '1';
+      btn.textContent = `Training ${trainInfo().label} · ${duration(secsLeft(trainInfo().until))} · tap to cultivate`; btn.disabled = btn.dataset.busy === '1';
     } else if (mode === 'active') {
       btn.textContent = `Cultivating · ${duration(secsLeft(state.cultivate_until))} left · tap to reset`; btn.disabled = btn.dataset.busy === '1';
     } else {
@@ -273,7 +281,7 @@
     } else {
       end.hidden = true; cult.hidden = false; box.hidden = false;
       if (mode === 'training') {
-        status.textContent = `Training ${STAT_NAMES[state.training.stat]} · ${duration(secsLeft(state.training.until))} left. No qi is gathered while training.`;
+        status.textContent = `Training ${trainInfo().label} · ${duration(secsLeft(trainInfo().until))} left. No qi is gathered while training.`;
         cult.textContent = 'Stop training and cultivate · 1 hour';
       } else if (mode === 'active') {
         status.textContent = `Cultivating · ${duration(secsLeft(state.cultivate_until))} left`;
@@ -344,8 +352,10 @@
       chanceEl.textContent = `Major breakthrough · ${Math.round(state.major_chance * 100)}% success · failure scatters half your qi`;
     } else chanceEl.hidden = true;
 
+    renderPools($('#char-pools'), state.pools);
     renderTox();
     $('#home-stamina').textContent = `${liveStamina()} / ${state.stamina_max}`;
+    renderTown();
     $('#home-loc').textContent = state.travel ? `→ ${state.travel.name}` : (state.region ? state.region.name : '');
     if ($('#pane-world').classList.contains('active')) renderWorld();
   }
@@ -641,6 +651,7 @@
     if (data.qi_lost > 0) bits.push(`<span class="gain bad">−${fmt(data.qi_lost)} qi</span>`);
     if (data.stones > 0) bits.push(`<span class="gain stone">+${fmt(data.stones)} spirit stones</span>`);
     if (data.item_name) bits.push(`<span class="gain item">+1 ${data.item_name}</span>`);
+    if (data.manual) bits.push(`<span class="gain item">+1 ${esc(data.manual)}!</span>`);
     if (data.bonus_item) bits.push(`<span class="gain item">+1 ${esc(data.bonus_item)} (local specialty)</span>`);
     if (data.extra_cost > 0) bits.push(`<span class="gain bad">−${data.extra_cost} extra stamina</span>`);
     box.className = `card story k-${data.kind}`;
@@ -677,8 +688,18 @@
       if (it.effects.tox_clear) fx.push(`−${it.effects.tox_clear} toxicity`);
       if (it.effects.perm_clear) fx.push(`−${it.effects.perm_clear} deep toxicity`);
       li.innerHTML = `<div class="it-main"><div class="it-top"><strong>${it.name}</strong><span class="qty">×${it.qty}</span></div>
-        <span class="rarity">${it.rarity} ${it.kind === 'material' ? 'material' : ''}</span>
+        <span class="rarity">${it.rarity} ${it.kind === 'material' ? 'material' : it.kind === 'manual' ? 'manual' : ''}${it.min_realm > 1 ? ` · realm ${it.min_realm}+` : ''}</span>
         <p>${it.description}</p>${fx.length ? `<p class="fx">${fx.join(' · ')}</p>` : ''}</div>`;
+      if (it.kind === 'manual') {
+        const b = document.createElement('button');
+        b.className = 'btn primary small';
+        b.textContent = 'Read';
+        b.onclick = async () => {
+          const r = await sectCall('read_manual', { p_item: it.id });
+          if (r) { toast(r.message); loadBag(); }
+        };
+        li.appendChild(b);
+      }
       if (it.kind === 'consumable') {
         const b = document.createElement('button');
         b.className = 'btn primary small';
@@ -1113,6 +1134,177 @@
 
   $('#btn-look').addEventListener('click', loadOpponents);
 
+  // ---------- Pools (HP / Energy) ----------
+  function renderPools(el, p) {
+    if (!el || !p) return;
+    const hpPct = Math.min(100, (p.hp / Math.max(1, p.hp_max)) * 100);
+    const enPct = Math.min(100, (p.energy / Math.max(1, p.energy_max)) * 100);
+    const heal = p.heal_until && secsLeft(p.heal_until) > 0 ? ` · healer: ${duration(secsLeft(p.heal_until))}` : '';
+    const html = `<div class="pool"><div class="meter-label"><span>Health${p.injured ? ' <b class="inj">· injured</b>' : ''}${heal}</span><span>${fmt(p.hp)} / ${fmt(p.hp_max)}</span></div>
+        <div class="meter-track thin"><div class="meter-fill hp" style="width:${hpPct}%"></div></div></div>
+      <div class="pool"><div class="meter-label"><span>Energy</span><span>${fmt(p.energy)} / ${fmt(p.energy_max)}</span></div>
+        <div class="meter-track thin"><div class="meter-fill en" style="width:${enPct}%"></div></div></div>`;
+    if (el.dataset.html !== html) { el.innerHTML = html; el.dataset.html = html; }
+  }
+
+  // ---------- Skills ----------
+  const SLOTS = [
+    { id: 'attack', type: 'attack', label: 'Primary attack', group: 'Attack' },
+    { id: 'au1', type: 'attack_util', label: 'Utility', group: 'Attack' },
+    { id: 'au2', type: 'attack_util', label: 'Utility', group: 'Attack' },
+    { id: 'au3', type: 'attack_util', label: 'Utility', group: 'Attack' },
+    { id: 'defense', type: 'defense', label: 'Primary defense', group: 'Defense' },
+    { id: 'du1', type: 'defense_util', label: 'Utility', group: 'Defense' },
+    { id: 'du2', type: 'defense_util', label: 'Utility', group: 'Defense' },
+    { id: 'du3', type: 'defense_util', label: 'Utility', group: 'Defense' },
+    { id: 'p1', type: 'passive', label: 'Passive', group: 'Passives' },
+    { id: 'p2', type: 'passive', label: 'Passive', group: 'Passives' },
+    { id: 'p3', type: 'passive', label: 'Passive', group: 'Passives' }
+  ];
+  const TYPE_LABEL = { attack: 'Primary attack', attack_util: 'Attack utility', defense: 'Primary defense', defense_util: 'Defense utility', passive: 'Passive' };
+  let skillsData = null;
+  let skillsTimer = null;
+
+  async function loadSkills() {
+    const { data, error } = await sb.rpc('my_skills');
+    if (error) return toast(friendly(error));
+    skillsData = data;
+    renderSkills();
+  }
+
+  function renderSkills() {
+    const d = skillsData;
+    if (!d) return;
+    renderPools($('#sk-pools'), d.pools);
+    const pb = $('#sk-practice');
+    if (d.practicing) {
+      const sk = d.skills.find((x) => x.id === d.practicing.skill);
+      pb.hidden = false;
+      pb.innerHTML = `<span>Practising <strong>${esc(sk ? sk.name : '')}</strong> · ${duration(secsLeft(d.practicing.until))} left</span>`;
+    } else pb.hidden = true;
+
+    const lo = $('#sk-loadout');
+    lo.innerHTML = '';
+    let group = '';
+    SLOTS.forEach((sl) => {
+      if (sl.group !== group) {
+        group = sl.group;
+        const h = document.createElement('p');
+        h.className = 'lo-group';
+        h.textContent = group;
+        lo.appendChild(h);
+      }
+      const sk = d.skills.find((x) => x.equipped === sl.id);
+      const b = document.createElement('button');
+      b.className = `lo-slot${sk ? '' : ' empty'}${sl.type === 'attack' || sl.type === 'defense' ? ' primary' : ''}`;
+      b.innerHTML = `<span class="lo-label">${sl.label}</span><span class="lo-name">${sk ? esc(sk.name) : 'Empty'}</span>${sk ? `<span class="lo-lvl">${sk.tier} · ${sk.level}</span>` : ''}`;
+      b.onclick = () => openPicker(sl);
+      lo.appendChild(b);
+    });
+
+    const ul = $('#sk-list');
+    ul.innerHTML = '';
+    d.skills.forEach((sk) => {
+      const pct = Math.min(100, (sk.level_exact / sk.tier_cap) * 100);
+      const btns = [];
+      const practising = d.practicing && d.practicing.skill === sk.id;
+      if (sk.can_breakthrough) {
+        const bt = smallBtn(`Breakthrough · ${fmt(d.breakthrough_cost)}`, 'primary', () => breakSkill(sk));
+        bt.disabled = !d.in_town;
+        btns.push(bt);
+      } else if (sk.level < sk.tier_cap) {
+        const pr = smallBtn(practising ? 'Practising…' : 'Practise', practising ? 'ghost' : 'ghost', () => practise(sk));
+        pr.disabled = practising || (state && modeNow() === 'seclusion');
+        btns.push(pr);
+      }
+      const li = personRow(`<strong>${esc(sk.name)}</strong>
+        <div class="tags"><span class="slot-tag">${TYPE_LABEL[sk.slot_type]}</span>${sk.element ? `<span class="el-tag">${sk.element}</span>` : ''}${sk.equipped ? '<span class="lead">Equipped</span>' : ''}</div>
+        <div class="sk-bar"><div class="meter-track thin"><div class="meter-fill sk" style="width:${pct}%"></div></div><span class="muted small-text">${sk.tier} · ${sk.level} / ${sk.tier_cap}</span></div>
+        <span class="muted small-text">${esc(sk.description)}${sk.can_breakthrough && !d.in_town ? ' · Find a trainer in a town to break through.' : ''}${sk.level >= sk.tier_cap && sk.tier_cap > 25 ? ' · Needs a master to go further.' : ''}</span>`, btns);
+      ul.appendChild(li);
+    });
+  }
+
+  function openPicker(sl) {
+    const d = skillsData;
+    $('#sk-picker').hidden = false;
+    $('#sk-picker-title').textContent = `Choose: ${sl.label}`;
+    const ul = $('#sk-picker-list');
+    ul.innerHTML = '';
+    const opts = d.skills.filter((x) => x.slot_type === sl.type);
+    if (!opts.length) ul.innerHTML = '<li class="empty">You have not learned any skills for this slot. Buy manuals at a town market, or find them while exploring.</li>';
+    opts.forEach((sk) => {
+      const here = sk.equipped === sl.id;
+      ul.appendChild(personRow(`<strong>${esc(sk.name)}</strong><span class="muted small-text">${sk.tier} · ${sk.level}${sk.equipped && !here ? ' · in another slot' : ''} — ${esc(sk.description)}</span>`,
+        [smallBtn(here ? 'Equipped' : 'Equip', here ? 'ghost' : 'primary', async () => {
+          if (here) return;
+          const r = await sectCall('equip_skill', { p_slot: sl.id, p_skill: sk.id }, `${sk.name} equipped.`);
+          if (r) { skillsData = r; $('#sk-picker').hidden = true; renderSkills(); }
+        })]));
+    });
+    if (sl.type !== 'attack' && sl.type !== 'defense' && d.skills.some((x) => x.equipped === sl.id)) {
+      ul.appendChild(personRow('<span class="muted small-text">Leave this slot empty</span>', [smallBtn('Remove', 'ghost', async () => {
+        const r = await sectCall('equip_skill', { p_slot: sl.id, p_skill: null });
+        if (r) { skillsData = r; $('#sk-picker').hidden = true; renderSkills(); }
+      })]));
+    }
+    $('#sk-picker').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('#sk-picker-close').addEventListener('click', () => { $('#sk-picker').hidden = true; });
+
+  async function practise(sk) {
+    const r = await sectCall('practice_skill', { p_skill: sk.id }, `You practise ${sk.name} for an hour. Cultivation pauses meanwhile.`);
+    if (r) { skillsData = r; renderSkills(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  }
+  async function breakSkill(sk) {
+    const r = await sectCall('skill_breakthrough', { p_skill: sk.id }, `The trainer guides you. ${sk.name} can now grow to level 50.`);
+    if (r) { skillsData = r; renderSkills(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  }
+
+  // ---------- Town: market and healer ----------
+  let mkTab = 'attack';
+  let mkData = null;
+  async function loadMarket() {
+    const { data, error } = await sb.rpc('market_list');
+    if (error) return toast(friendly(error));
+    mkData = data;
+    renderMarket();
+  }
+  function renderMarket() {
+    if (!mkData) return;
+    document.querySelectorAll('#mk-tabs .chip').forEach((b) => b.classList.toggle('active', b.dataset.mk === mkTab));
+    const ul = $('#mk-list');
+    ul.innerHTML = '';
+    if (!mkData.in_town) { ul.innerHTML = '<li class="empty">Markets are only found in towns.</li>'; return; }
+    mkData.items.filter((x) => x.slot_type === mkTab).forEach((it) => {
+      const b = smallBtn(`Buy · ${fmt(it.price)}`, 'primary', async () => {
+        const r = await sectCall('market_buy', { p_item: it.id }, `Bought ${it.name}. Read it from your Bag.`);
+        if (r) { mkData = r; renderMarket(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      b.disabled = state && state.spirit_stones < it.price;
+      ul.appendChild(personRow(`<strong>${esc(it.name)}</strong>
+        <div class="tags">${it.known ? '<span class="lead">Known</span>' : ''}${it.min_realm > 1 ? `<span class="req">Needs realm ${it.min_realm}</span>` : ''}</div>
+        <span class="muted small-text">${esc(it.description)}</span>`, [b]));
+    });
+  }
+  document.querySelectorAll('#mk-tabs .chip').forEach((b) => b.addEventListener('click', () => { mkTab = b.dataset.mk; renderMarket(); }));
+
+  function renderTown() {
+    const card = $('#town-card');
+    if (!card || !state || !state.region) return;
+    card.hidden = !state.region.is_town || !!state.travel;
+    if (card.hidden) return;
+    const p = state.pools || {};
+    $('#town-note').textContent = `${state.region.name} is a safe town. Buy manuals at the market, or have the healer treat your wounds.`;
+    const healing = p.heal_until && secsLeft(p.heal_until) > 0;
+    $('#healer-note').textContent = healing ? `Treating · ${duration(secsLeft(p.heal_until))}` : p.hp < p.hp_max ? `${fmt(p.hp_max - p.hp)} HP to heal` : 'You are healthy';
+    $('#btn-healer').disabled = healing || !(p.hp < p.hp_max);
+  }
+  $('#btn-healer').addEventListener('click', async () => {
+    const r = await sectCall('visit_healer', {});
+    if (r) { toast(`The healer begins treating you for ${fmt(r.cost)} spirit stones. You will be fully healed in a few minutes.`); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  });
+
   // ---------- Stats ----------
   const STAT_NAMES = { str: 'Strength', agi: 'Agility', dex: 'Dexterity', con: 'Constitution', endu: 'Endurance',
     intl: 'Intelligence', per: 'Perception', soul: 'Soul Power', wil: 'Willpower', fort: 'Fortitude' };
@@ -1483,6 +1675,14 @@
       const sp = $('#st-training span');
       if (sp) sp.innerHTML = `Training <strong>${STAT_NAMES[statsData.training.stat]}</strong> · ${duration(left)} left`;
     }, 1000); }
+    clearInterval(skillsTimer);
+    if (id === 'pane-skills') { $('#sk-picker').hidden = true; loadSkills(); skillsTimer = setInterval(() => {
+      if (!skillsData || !skillsData.practicing) return;
+      if (secsLeft(skillsData.practicing.until) <= 0) return loadSkills();
+      const sp = $('#sk-practice span'); const sk = skillsData.skills.find((x) => x.id === skillsData.practicing.skill);
+      if (sp) sp.innerHTML = `Practising <strong>${esc(sk ? sk.name : '')}</strong> · ${duration(secsLeft(skillsData.practicing.until))} left`;
+    }, 1000); }
+    if (id === 'pane-market') loadMarket();
     if (id === 'pane-trade') loadAuctions();
     if (id === 'pane-messages') loadInbox();
     if (id === 'pane-chat') { markChatTabs(); chat.start(); }
