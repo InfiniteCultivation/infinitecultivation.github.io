@@ -583,3 +583,4 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .rar-t-uncommon { color: #8fd6a8; } .rar-t-rare { color: #8fc0ff; } .rar-t-epic { color: #d7a6ff; } .rar-t-legendary { color: var(--gold-2); }
 #pf-change-box { align-items: center; gap: 8px; }
 .bag li.rar-epic { border-left-color: #b77cff; }
+.battle-only { align-self: center; white-space: nowrap; }

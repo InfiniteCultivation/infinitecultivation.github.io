@@ -704,6 +704,7 @@
       if (it.effects.tox) fx.push(`+${it.effects.tox} toxicity`);
       if (it.effects.tox_clear) fx.push(`−${it.effects.tox_clear} toxicity`);
       if (it.effects.perm_clear) fx.push(`−${it.effects.perm_clear} deep toxicity`);
+      if (it.effects.boost_pct) fx.push(`+${it.effects.boost_pct}% cultivation for ${it.effects.minutes / 60}h`);
       li.innerHTML = `<div class="it-main"><div class="it-top"><strong>${it.name}</strong><span class="qty">×${it.qty}</span></div>
         <span class="rarity">${it.rarity} ${it.kind === 'material' ? 'material' : it.kind === 'manual' ? 'manual' : it.kind === 'gear' ? (it.effects.slot === 'weapon' ? `weapon · best for ${WFIT[it.effects.wtype]}` : 'armor') : ''}${it.min_realm > 1 ? ` · realm ${it.min_realm}+` : ''}</span>
         <p>${it.description}</p>${fx.length ? `<p class="fx">${fx.join(' · ')}</p>` : ''}</div>`;
@@ -727,7 +728,9 @@
         };
         li.appendChild(b);
       }
-      if (it.kind === 'consumable') {
+      if (it.kind === 'consumable' && it.effects.battle_only) {
+        li.insertAdjacentHTML('beforeend', '<span class="muted small-text battle-only">Use in battle</span>');
+      } else if (it.kind === 'consumable') {
         const b = document.createElement('button');
         b.className = 'btn primary small';
         b.textContent = 'Use';
@@ -1840,6 +1843,8 @@
   const PROFS = {
     gatherer: { name: 'Gatherer', ico: '採', blurb: 'Read the land and harvest what others miss: herbs, ores, jade and rarer treasures from the wilds. Learns trap arts that punish enemies who strike you.' },
     alchemist: { name: 'Alchemist', ico: '丹', blurb: 'Refine herbs and beast cores into pills. A Fire root helps greatly. Learns arts that strike and swallow pills in the same move.' },
+    talisman: { name: 'Talisman Master', ico: '符', blurb: 'Draw talismans that burn, bind and shield in battle. A Water root helps greatly. Learns arts that loose storms of charged paper.' },
+    array: { name: 'Array Master', ico: '陣', blurb: 'Build formations from jade and spirit wood that speed up cultivation. An Earth root helps greatly. Learns battle arrays that weaken foes.' },
     blacksmith: { name: 'Blacksmith', ico: '鍛', blurb: 'Forge weapons and armor from ore, jade and crystal. A Metal root helps greatly. Learns arts that shatter the enemy\'s defenses.' }
   };
   let pfData = null;
@@ -1906,17 +1911,18 @@
     }
 
     const al = $('#pf-alchemy');
-    al.hidden = !['alchemist', 'blacksmith'].includes(d.profession);
+    al.hidden = !['alchemist', 'blacksmith', 'talisman', 'array'].includes(d.profession);
     if (!al.hidden) {
-      $('#pf-al-title').textContent = d.profession === 'blacksmith' ? 'Forging' : 'Pill refining';
-      $('#pf-al-note').textContent = d.profession === 'blacksmith' ? 'Forging costs energy, which recovers over time. A failed forging ruins the materials. Gear you forge can be equipped from your Bag or sold at the auction house.' : 'Refining costs energy, which recovers over time. Failed attempts lose the ingredients. Alchemists also get 30% more from pills they take in battle.';
+      const CRAFT = { alchemist: ['Pill refining', 'Refine'], blacksmith: ['Forging', 'Forge'], talisman: ['Talisman drawing', 'Draw'], array: ['Array building', 'Build'] }[d.profession];
+      $('#pf-al-title').textContent = CRAFT[0];
+      $('#pf-al-note').textContent = d.profession === 'talisman' ? 'Drawing costs energy, which recovers over time. A failed talisman burns up its materials. Talismans are used in battle as your action.' : d.profession === 'array' ? 'Building costs energy, which recovers over time. A failed array cracks its materials. Use an array from your Bag for a cultivation speed boost.' : d.profession === 'blacksmith' ? 'Forging costs energy, which recovers over time. A failed forging ruins the materials. Gear you forge can be equipped from your Bag or sold at the auction house.' : 'Refining costs energy, which recovers over time. Failed attempts lose the ingredients. Alchemists also get 30% more from pills they take in battle.';
       $('#pf-energy').textContent = `Energy ${fmt(d.energy)} / ${fmt(d.energy_max)}`;
       const ul = $('#pf-recipes');
       ul.innerHTML = '';
       d.recipes.forEach((r) => {
         const enough = r.inputs.every((x) => x.have >= x.need);
         const locked = d.level < r.min_level;
-        const b = smallBtn(locked ? `Level ${r.min_level}` : `${d.profession === 'blacksmith' ? 'Forge' : 'Refine'} · ${r.energy} energy`, 'primary', async () => {
+        const b = smallBtn(locked ? `Level ${r.min_level}` : `${CRAFT[1]} · ${r.energy} energy`, 'primary', async () => {
           b.disabled = true;
           const { data, error } = await sb.rpc('craft', { p_recipe: r.id });
           if (error) { toast(friendly(error)); b.disabled = false; return; }
@@ -2075,8 +2081,7 @@
       const misc = $('#bt-misc');
       misc.innerHTML = '';
       misc.appendChild(smallBtn('Meditate (+energy)', 'ghost', () => act({ type: 'meditate' })));
-      if (v.items.healing_pill > 0) misc.appendChild(smallBtn(`Healing Pill ×${v.items.healing_pill}`, 'ghost', () => act({ type: 'item', item: 'healing_pill' })));
-      if (v.items.energy_pill > 0) misc.appendChild(smallBtn(`Energy Pill ×${v.items.energy_pill}`, 'ghost', () => act({ type: 'item', item: 'energy_pill' })));
+      (v.items || []).forEach((x) => misc.appendChild(smallBtn(`${x.name} ×${x.left}`, 'ghost', () => act({ type: 'item', item: x.id }))));
       const flee = smallBtn(v.kind === 'duel' ? 'Yield' : 'Flee', 'ghost danger-btn', function () {
         armed(this, v.kind === 'monster' ? 'Tap again to run' : 'Tap again — counts as a loss', () => act({ type: 'flee' }));
       });

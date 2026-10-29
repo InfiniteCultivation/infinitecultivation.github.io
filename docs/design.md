@@ -242,3 +242,9 @@ Decisions agreed with the owner, to build into later milestones.
 - Weapon types match classes: Sword (Swordsman), Gauntlets (Body Cultivator), Staff (Spellcaster), Soul Bell (Soul Cultivator). A matching weapon gives 25% more bonus. Any class may use any weapon.
 - Blacksmith profession: Metal root affinity (pure Metal ×1.5 up to Peak … no Metal ×0.7 up to Low). Forges all 20 gear pieces; costs energy; failure ruins the materials. Class art: Sundering Blow (Metal strike that stacks −15% defense, up to −45%).
 - Battle-only bonus health/energy never carries back out of a fight.
+
+## Step 11: Talisman Master + Array Master (built)
+- Talisman Master (Water affinity): Guarding (20% shield), Flame (12% of enemy health, Fire), Binding (60% stun), Thunder (25% + stun chance, Metal). Talismans are battle-only items used as your action. Class art: Thousand Paper Blades (3-hit Water strike).
+- Array Master (Earth affinity): Spirit Gathering Array Flag (+15% cultivation 4h), Grand Qi Cyclone Array Disk (+30% 4h). Used from the Bag. Class art: Earthbound Array (weaken + defense).
+- Any item marked "battle" can now be used in fights (pills and talismans); the battle shows every one you carry.
+- Mining is part of Gatherer for now (ore comes from gathering).
