@@ -285,3 +285,28 @@ Decisions agreed with the owner, to build into later milestones.
 - Support arts (owner: must be EQUIPPED in one of the six slots like any art; they do nothing in battle, so they cost a battle slot; used from Cultivators nearby › Support, which lists your equipped support arts): Restoring Hands (heal another player or yourself; 2 health per energy) and Vigor Infusion (restore another player's stamina; 0.6 per energy; not on yourself). Both scale with art level and Physician class level; target must be in the same region and not fighting. Using them on others raises the art and the class.
 - Owner wants healing allies inside combat later, once group battles (sect wars, raids) exist.
 - (update) Vigor Infusion in battle (owner): restores energy instead of stamina. With 1v1 battles it restores your own energy (25% of max, costs 5, 4-turn cooldown); once group battles exist it should target an ally. Restoring Hands has no battle form.
+
+## Owner design, Oct 29 2026 (afternoon): NPC sects v2, sect wars, tournaments, realms, group combat
+### NPC sects v2 (planned)
+- Three difficulty tiers (weak / middle / strong) so players have a range to interact with; players can trade with or attack them as they grow.
+- When a player group attacks, the game generates the NPC side from the attacking group: same number of members; Easy ≈ 75% of the players' stats/skills/arts, Middle ≈ equal, Hard = higher stats, skills, arts. Harder tiers give much better rewards, so strong groups won't bother with Easy.
+- The game sometimes generates an NPC sect that attacks a player sect; the admin can also trigger this from the admin panel.
+- Open question to owner: three NPC sects per region, or per continent?
+### Sect wars (planned)
+- "Enemy" = the sect you are at war with. One sect declares war; the other accepts, or declines and takes a small penalty.
+- During a war, players may not enter a town until 5 minutes after their last fight with an enemy (no attack-then-heal).
+- Each sect gets a pool of points per member. Beating an enemy (via Cultivators nearby attack, or a duel) moves points from the loser's side to the winner's. Ambush attacks are worth much less than duels (duels are fair fights).
+- Anti-AFK: a member who hasn't started a fight with an enemy for ~1 hour is penalized automatically — points (about one duel's worth) move to the other side — repeating each hour until they fight an enemy.
+- Claude's suggestions (awaiting owner): fixed war length (e.g. 48h) with a 1h countdown; stakes (reparations or a region); points scaled by realm gap; cap/seclusion exemption on AFK penalties; allies can join; live scoreboard + Home banner.
+### Tournaments (planned)
+- Any player with enough stones can host. The host puts up three prizes (1st/2nd/3rd).
+- A game-wide announcement goes out; players have 10 minutes to travel to the town on that continent and enter.
+- Single-elimination brackets; opponents are teleported to arenas to fight; the game hands out the three prizes.
+### Mystic & Divine Realms (planned)
+- Magical realms that consistently hold rarer items. Mystic = in-between tier, Divine = elite.
+- Open areas with many places to move between; search for items while fighting creatures and other players. Gathering professions (herbalist, miner) gather faster, as normal.
+- Lose to a monster (solo or team of up to 3): drop everything picked up in the realm, sent back to the start; those items vanish (may be found again).
+- Lose to players: the winners pick one item per member of the losing team to keep; the rest vanish.
+### Group combat (planned, needed by the above)
+- Teams of up to 3. Coin flip for who goes first. Order alternates by join order: A1 (leader), B1 (leader), A2, B2, A3, B3. Knocked-out fighters leave the rotation.
+- Reaction arts can protect teammates when they are attacked. Physical classes can have passives that let them become the target of an attack aimed at a teammate (tanking).
