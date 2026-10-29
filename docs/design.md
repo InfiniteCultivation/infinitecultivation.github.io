@@ -31,3 +31,14 @@ Decisions agreed with the owner, to build into later milestones.
 ## PvP (not built yet)
 - "Look for opponents" finds players in your current region to fight.
 - Results mark players who are in your sect or allied sects, so you know before you attack.
+
+## Growth pacing and boosts (agreed Oct 29 2026, not built yet)
+- Passive qi should be much slower than the test speed; reaching the peak should be long-term, so players grow through actions, items and encounters.
+- Winning a fight: instant qi bonus + a small % cultivation-speed boost for a while.
+- Losing a fight you started (attacker): penalty to cultivation speed over time.
+- Losing when someone else attacked you (defender): smaller penalty.
+- Items (pills etc.): instant/timed bonus, but build up Toxicity in the body.
+  - Toxicity is hard to remove and clears slowly on its own.
+  - Can be reduced, or its clearing sped up, by chance encounters, extremely rare items, or an elder helping you.
+- Mentors: a mentor trains you; the boost and temporary bonus depend on the mentor's abilities.
+- Bonuses stack.
