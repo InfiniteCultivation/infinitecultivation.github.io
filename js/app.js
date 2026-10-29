@@ -1290,7 +1290,7 @@
       });
       b.disabled = state && state.spirit_stones < it.price;
       ul.appendChild(personRow(`<strong>${esc(it.name)}</strong>
-        <div class="tags">${it.known ? '<span class="lead">Known</span>' : ''}${it.profession ? `<span class="prof-tag">${PROFS[it.profession] ? PROFS[it.profession].name : it.profession} only</span>` : ''}${it.min_realm > 1 ? `<span class="req">Needs realm ${it.min_realm}</span>` : ''}</div>
+        <div class="tags">${it.known ? '<span class="lead">Known</span>' : ''}${it.profession ? `<span class="prof-tag">${PROFS[it.profession] ? PROFS[it.profession].name : it.profession} only</span>` : ''}${it.combat_class ? `<span class="prof-tag cls">${CLASSES[it.combat_class] ? CLASSES[it.combat_class].name : it.combat_class} only</span>` : ''}${it.min_realm > 1 ? `<span class="req">Needs realm ${it.min_realm}</span>` : ''}</div>
         <span class="muted small-text">${esc(it.description)}</span>`, [b]));
     });
   }
@@ -1659,7 +1659,7 @@
     renderArts();
   }
   function artTags(a) {
-    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.profession ? `<span class="prof-tag">${PROFS[a.profession] ? PROFS[a.profession].name : a.profession}</span>` : ''}${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.energy} energy</span>`;
+    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.profession ? `<span class="prof-tag">${PROFS[a.profession] ? PROFS[a.profession].name : a.profession}</span>` : ''}${a.combat_class ? `<span class="prof-tag cls">${CLASSES[a.combat_class] ? CLASSES[a.combat_class].name : a.combat_class}</span>` : ''}${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.energy} energy</span>`;
   }
   function renderArts() {
     const d = artsData;
@@ -1714,6 +1714,99 @@
       if (r) { artsData = r; renderArts(); }
     }));
   });
+
+  // ---------- Combat class ----------
+  const CLASSES = {
+    swordsman: { name: 'Swordsman', ico: '劍', blurb: 'Fast martial strikes. Critical hits, bleeding wounds and deadly ripostes.' },
+    body: { name: 'Body Cultivator', ico: '體', blurb: 'Temper the flesh into a weapon. Tough, hard-hitting, drains life and shrugs off stuns.' },
+    spellcaster: { name: 'Spellcaster', ico: '術', blurb: 'Elemental magic. Choose a primary element: its arts hit harder and always build Resonance.' },
+    soul: { name: 'Soul Cultivator', ico: '魂', blurb: 'Strike the spirit itself. Steals energy, weakens foes and resists mental attacks.' }
+  };
+  const BASIC_ELEMENTS = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+  let clData = null;
+  async function loadClass() {
+    const { data, error } = await sb.rpc('my_class');
+    if (error) return toast(friendly(error));
+    clData = data;
+    renderClass();
+  }
+  async function pickClass(id, el, msg) {
+    const r = await sectCall('choose_class', { p_class: id, p_element: el || null }, msg);
+    if (r) { clData = r; renderClass(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  }
+  function classButtons(box, current, armedChange) {
+    Object.entries(CLASSES).forEach(([id, c]) => {
+      if (id === 'spellcaster') {
+        BASIC_ELEMENTS.forEach((el) => {
+          if (current && current.class === id && current.element === el) return;
+          const label = `${c.name} · ${el}${clData.roots.includes(el) ? ' ★' : ''}`;
+          const b = smallBtn(label, armedChange ? 'ghost' : 'ghost', function () {
+            if (armedChange) armed(this, 'Tap again to change', () => pickClass(id, el, `You are now a ${el} Spellcaster.`));
+            else pickClass(id, el, `You are now a ${el} Spellcaster.`);
+          });
+          box.appendChild(b);
+        });
+      } else {
+        if (current && current.class === id) return;
+        const b = smallBtn(`${an(c.name)}`.replace(/^./, (x) => x.toUpperCase()), armedChange ? 'ghost' : 'primary', function () {
+          if (armedChange) armed(this, 'Tap again to change', () => pickClass(id, null, `You are now ${an(c.name)}.`));
+          else pickClass(id, null, `You are now ${an(c.name)}.`);
+        });
+        box.appendChild(b);
+      }
+    });
+  }
+  function renderClass() {
+    const d = clData;
+    if (!d) return;
+    $('#cl-choose').hidden = !!d.class;
+    $('#cl-main').hidden = !d.class;
+    if (!d.class) {
+      const box = $('#cl-choices');
+      box.innerHTML = '';
+      Object.entries(CLASSES).forEach(([id, c]) => {
+        const card = document.createElement('div');
+        card.className = 'card prof-card';
+        card.innerHTML = `<div class="prof-head"><span class="h-ico">${c.ico}</span><h4 class="card-title">${c.name}</h4></div><p class="small-text">${c.blurb}</p>`;
+        if (id === 'spellcaster') {
+          card.insertAdjacentHTML('beforeend', '<p class="muted small-text">Pick your primary element (★ = in your spirit root):</p>');
+          const chips = document.createElement('div');
+          chips.className = 'chips wrap';
+          BASIC_ELEMENTS.forEach((el) => chips.appendChild(smallBtn(`${el}${d.roots.includes(el) ? ' ★' : ''}`, 'ghost', () => pickClass(id, el, `You are now a ${el} Spellcaster.`))));
+          card.appendChild(chips);
+        } else {
+          card.appendChild(smallBtn(`Become ${an(c.name)}`, 'primary', () => pickClass(id, null, `You are now ${an(c.name)}.`)));
+        }
+        box.appendChild(card);
+      });
+      return;
+    }
+    const c = CLASSES[d.class];
+    $('#cl-title').textContent = d.class === 'spellcaster' ? `${d.element} Spellcaster` : c.name;
+    $('#cl-tier').textContent = d.tier;
+    $('#cl-level').textContent = `${d.level} / ${d.cap}`;
+    $('#cl-bar').style.width = `${Math.min(100, (d.level_exact / d.cap) * 100)}%`;
+    $('#cl-cap').textContent = d.level_exact >= d.cap ? 'At the top of this tier — a breakthrough is needed.' : `Tier cap ${d.cap}`;
+    $('#cl-blurb').textContent = c.blurb;
+    $('#cl-bonuses').innerHTML = d.bonuses.map((x) => `<li>${esc(x)}</li>`).join('');
+    const bt = $('#cl-bt');
+    bt.innerHTML = '';
+    if (d.can_breakthrough) {
+      const b = smallBtn(`Break through with the town trainer · ${fmt(d.breakthrough_cost)} stones`, 'primary', async () => {
+        const r = await sectCall('class_breakthrough', {}, 'Breakthrough! Your next tier is open.');
+        if (r) { clData = r; renderClass(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      b.disabled = !d.in_town;
+      bt.appendChild(b);
+      if (!d.in_town) bt.insertAdjacentHTML('beforeend', '<p class="muted small-text">Visit a town to find a trainer.</p>');
+    } else if (d.level_exact >= d.cap && d.cap >= 50) {
+      bt.innerHTML = '<p class="muted small-text">Town trainers only teach up to Low tier. A master will be needed (coming later).</p>';
+    }
+    const ch = $('#cl-change');
+    ch.innerHTML = '';
+    ch.classList.add('wrap');
+    classButtons(ch, d, true);
+  }
 
   // ---------- Profession ----------
   const PROFS = {
@@ -2064,6 +2157,7 @@
     clearInterval(dmTimer);
     if (id !== 'pane-battle') stopBattle();
     if (id === 'pane-arts') loadArts();
+    if (id === 'pane-class') loadClass();
     if (id === 'pane-profession') { $('#pf-result').hidden = true; loadProfession(); }
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));

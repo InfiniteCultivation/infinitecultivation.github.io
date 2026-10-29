@@ -229,3 +229,9 @@ Decisions agreed with the owner, to build into later milestones.
 - Alchemy recipes: Energy, Healing, Qi Gathering (level 10), Purifying Dew (level 30), Spirit Condensing (level 40). They cost energy; failure loses the ingredients; great success doubles the output.
 - Class arts (sold in town markets, class-locked): Hidden Snare (Gatherer trap: the next enemy art that lands springs it, with a damage and stun chance), Pill-Infused Palm (Alchemist: strike and draw on a battle pill at 60% strength; common pills not used up), Venom Pill Mist (Alchemist poison). Alchemists get +30% from battle pills.
 - To do later: Miner (or fold into Gatherer), Blacksmith (weapons/armor), Talisman maker, Array master; equipment slots.
+
+## Step 9: combat classes v1 (built)
+- Owner picked: Swordsman, Body Cultivator, Spellcaster (chooses a primary element — owner's Elementalist idea), Soul Cultivator. Support classes later.
+- First choice free; changing costs 500 stones and restarts at level 1 (a Spellcaster switching element keeps their level). Class level rises with every fight (+1 for a win, +0.5 otherwise, slowing near the tier cap); the town trainer breaks Early → Low.
+- Passive bonuses scale with class level (×0.5 at level 1 → ×1.5 at 100): Swordsman crit +5%, bleed +10%; Body +10% battle HP, 5% leech, 20% stun resist; Spellcaster primary-element arts +20% damage and always build Resonance; Soul +15% battle energy, 15% mental resist, +30% energy regen.
+- Class arts (class-locked, 400 stones in markets): Crescent Moon Slash, Flowing Riposte (Swordsman); Iron Mountain Charge, Vajra Body (Body); Elemental Bolt (takes the primary element), Surging Tide of Qi (Spellcaster); Soul Lash, Mind Shackle (Soul). Class arts get +level/2 % damage.

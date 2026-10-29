@@ -575,3 +575,7 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .prof-tag { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #e7c3ff; background: rgba(176,120,230,0.15); }
 .recipe-in .short { color: var(--danger); }
 #btn-gather { width: 100%; margin-top: 8px; }
+.hub-btn.span2 { grid-column: span 2; }
+.bonus-list { margin: 8px 0; padding-left: 18px; font-size: .88rem; color: #9fe3c8; display: grid; gap: 4px; }
+.chips.wrap { flex-wrap: wrap; overflow: visible; }
+.prof-tag.cls { color: #ffd59e; background: rgba(240,170,80,0.14); }
