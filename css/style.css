@@ -375,3 +375,23 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .store-note { margin: -4px 0 10px; }
 #move-box .btn { margin-top: 12px; }
 .spec.s-strong { color: #ffd98a; background: rgba(240,180,80,0.16); }
+
+/* PvP */
+.effects { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.effects:empty { display: none; }
+.effects li { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; padding: 7px 10px; border-radius: 9px; background: rgba(0,0,0,0.22); }
+.effects li.up span:first-child { color: #a6f0d2; font-weight: 600; }
+.effects li.down span:first-child { color: var(--danger); font-weight: 600; }
+.rel { font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,0.06); color: var(--muted); }
+.rel.r-mine { color: var(--gold-2); background: rgba(214,178,94,0.15); }
+.rel.r-ally { color: #9fd0ff; background: rgba(111,168,255,0.14); }
+.rel.r-other { color: #ff9f8f; background: rgba(255,122,107,0.12); }
+.warn-tag { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 99px; color: #120a06; background: var(--gold-2); }
+.odds { font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,0.06); }
+.odds.o-easy { color: var(--jade); } .odds.o-favoured { color: #a6f0d2; } .odds.o-even { color: var(--gold-2); }
+.odds.o-risky { color: #ff9f5a; } .odds.o-deadly { color: var(--danger); }
+.block { color: #8b93a6 !important; font-style: italic; }
+.bet-input { width: 78px; font: inherit; font-size: 16px; color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 9px; padding: 6px 8px; }
+.legend { margin: 10px 0 0; text-align: center; }
+.fight-title { font-family: 'Cinzel', serif; color: var(--gold-2); margin: 0 0 6px !important; letter-spacing: .04em; }
+#btn-look { flex: 0 0 auto; }

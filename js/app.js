@@ -189,6 +189,7 @@
   let state = null;       // last character data from the server
   let syncedAt = 0;       // when we got it (local clock)
   let ticker = null;
+  let tickCount = 0;
 
   // Qi only flows while actively cultivating or in seclusion.
   function modeNow() {
@@ -313,7 +314,12 @@
     orbs($('#home-orbs'), ch.spirit_root);
     tick();
     clearInterval(ticker);
-    ticker = setInterval(() => { tick(); loadNotes(); }, 1000);
+    ticker = setInterval(() => {
+      tick();
+      loadNotes();
+      tickCount += 1;
+      if (tickCount % 20 === 0 && $('#pane-world').classList.contains('active')) loadDuels();
+    }, 1000);
     loadNotes(true);
     if (!$('#screen-home').classList.contains('active')) show('screen-home');
   }
@@ -417,7 +423,17 @@
     $('#tox-temp-val').textContent = t < 0.5 ? '0' : Math.round(t);
     $('#tox-perm-val').textContent = p < 0.5 ? '0' : Math.round(p);
     $('#home-tox').classList.toggle('clean', t < 0.5 && p < 0.5);
-    const slow = Math.round((1 - state.qi_rate / state.qi_rate_base) * 100);
+    const slow = Math.round((1 - Math.max(0.1, (1 - t / 200) * (1 - p / 150))) * 100);
+    // timed boosts and penalties from fights
+    const ul = $('#effects');
+    const now = serverNow();
+    const live = (state.effects || []).filter((e) => new Date(e.ends_at).getTime() > now);
+    const html = live.map((e) => {
+      const left = (new Date(e.ends_at).getTime() - now) / 1000;
+      const pct = Number(e.pct);
+      return `<li class="${pct >= 0 ? 'up' : 'down'}"><span>${pct >= 0 ? '▲ +' : '▼ '}${pct}% cultivation</span><span class="muted">${esc(e.source)} · ${duration(left)}</span></li>`;
+    }).join('');
+    if (ul.dataset.html !== html) { ul.innerHTML = html; ul.dataset.html = html; }
     const note = $('#tox-note');
     note.hidden = slow < 1;
     note.textContent = `Toxins are slowing your cultivation by ${slow}%.`;
@@ -936,12 +952,114 @@
     });
   });
 
+  // ---------- PvP ----------
+  const REL_MARK = { mine: '★ ', ally: '◆ ', other: '', none: '' };
+
+  async function loadOpponents() {
+    const btn = $('#btn-look');
+    btn.disabled = true; btn.textContent = 'Searching…';
+    const { data, error } = await sb.rpc('look_for_opponents');
+    btn.disabled = false; btn.textContent = 'Look again';
+    if (error) return toast(friendly(error));
+    renderOpponents(data || []);
+  }
+
+  function renderOpponents(list) {
+    const ul = $('#opp-list');
+    ul.innerHTML = '';
+    $('#opp-note').textContent = list.length ? '' : `Nobody else is in ${state.region.name} right now.`;
+    $('#opp-note').hidden = !list.length ? false : true;
+    list.forEach((o) => {
+      const sect = o.sect ? `<span class="rel r-${o.relation}">${REL_MARK[o.relation]}${esc(o.sect)}</span>` : '<span class="rel r-none">No sect</span>';
+      const warn = o.relation === 'mine' ? '<span class="warn-tag">Same sect</span>' : o.relation === 'ally' ? '<span class="warn-tag">Ally</span>' : '';
+      const li = personRow(`<strong>${esc(o.name)}</strong>
+        <div class="tags">${sect}${warn}<span class="odds o-${o.odds.toLowerCase()}">${o.odds}</span></div>
+        <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · ${esc(o.root)} root${o.secluded ? ' · in seclusion' : ''}</span>
+        ${o.block ? `<span class="muted small-text block">${esc(o.block)}</span>` : ''}`, []);
+      const box = document.createElement('div');
+      box.className = 'p-actions';
+      const atk = smallBtn('Attack', 'danger-btn ghost', function () {
+        const label = o.relation === 'mine' ? 'Attack your own sect-mate?' : o.relation === 'ally' ? 'Attack an ally?' : 'Confirm attack';
+        armed(this, label, () => doAttack(o));
+      });
+      atk.disabled = !!o.block;
+      const bet = document.createElement('input');
+      bet.type = 'number'; bet.min = '0'; bet.inputMode = 'numeric'; bet.placeholder = 'Bet'; bet.className = 'bet-input';
+      const duel = smallBtn('Duel', 'ghost', async () => {
+        const amount = Math.max(0, parseInt(bet.value || '0', 10) || 0);
+        const d = await sectCall('challenge_duel', { p_target: o.id, p_bet: amount },
+          `Challenge sent to ${o.name}${amount ? ` for ${fmt(amount)} stones` : ''}. They have 10 minutes to answer.`);
+        if (d) { renderDuels(d); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      box.append(atk, bet, duel);
+      li.appendChild(box);
+      ul.appendChild(li);
+    });
+  }
+
+  async function doAttack(o) {
+    const { data, error } = await sb.rpc('attack', { p_target: o.id });
+    if (error) return toast(friendly(error));
+    const box = $('#world-result');
+    const bits = [];
+    if (data.qi > 0) bits.push(`<span class="gain qi">+${fmt(data.qi)} qi</span>`);
+    bits.push(`<span class="gain ${data.won ? 'qi' : 'bad'}">${data.effect_pct > 0 ? '+' : ''}${data.effect_pct}% cultivation for ${data.effect_min} min</span>`);
+    box.className = `card story ${data.won ? 'k-encounter' : 'k-beast_lost'}`;
+    box.innerHTML = `<p class="fight-title">${data.won ? 'Victory' : 'Defeat'} · ${esc(data.opponent)}</p><p>${esc(data.story)}</p><div class="gains">${bits.join('')}</div>`;
+    box.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    renderHome(data.character);
+    loadOpponents();
+  }
+
+  async function loadDuels() {
+    const { data } = await sb.rpc('my_duels');
+    if (data) renderDuels(data);
+  }
+
+  function renderDuels(d) {
+    const ul = $('#duels-list');
+    ul.innerHTML = '';
+    const total = d.incoming.length + d.outgoing.length;
+    $('#duels-card').hidden = total === 0;
+    d.incoming.forEach((x) => {
+      ul.appendChild(personRow(`<strong>${esc(x.name)} challenges you</strong>
+        <span class="muted small-text">${REALMS[x.realm - 1]} ${x.stage} · ${x.bet ? `${fmt(x.bet)} stones each` : 'no bet'} · <span class="odds o-${x.odds.toLowerCase()}">${x.odds}</span></span>`, [
+        smallBtn('Accept', 'primary', async () => {
+          const r = await sectCall('respond_duel', { p_duel: x.id, p_accept: true });
+          if (!r) return;
+          const box = $('#world-result');
+          box.className = `card story ${r.won ? 'k-encounter' : 'k-beast_lost'}`;
+          box.innerHTML = `<p class="fight-title">Duel ${r.won ? 'won' : 'lost'} · ${esc(r.opponent)}</p><p>${esc(r.story)}</p>
+            ${r.bet ? `<div class="gains"><span class="gain ${r.won ? 'stone' : 'bad'}">${r.won ? '+' : '−'}${fmt(r.won ? r.bet * 2 : r.bet)} spirit stones</span></div>` : ''}`;
+          box.hidden = false;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          renderHome(r.character); renderDuels(r.duels);
+        }),
+        smallBtn('Decline', 'ghost', async () => { const r = await sectCall('respond_duel', { p_duel: x.id, p_accept: false }); if (r) renderDuels(r.duels); })
+      ]));
+    });
+    d.outgoing.forEach((x) => {
+      ul.appendChild(personRow(`<strong>Waiting for ${esc(x.name)}</strong>
+        <span class="muted small-text">${x.bet ? `${fmt(x.bet)} stones staked` : 'no bet'} · expires in ${duration(secsLeft(x.expires_at))}</span>`, [
+        smallBtn('Cancel', 'ghost', async () => { const r = await sectCall('cancel_duel', { p_duel: x.id }, 'Challenge withdrawn.'); if (r) { renderDuels(r); try { renderHome(await loadCharacter()); } catch (e) { /* */ } } })
+      ]));
+    });
+  }
+
+  $('#btn-look').addEventListener('click', loadOpponents);
+
   // ---------- Tabs ----------
   function showPane(id) {
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
     window.scrollTo(0, 0);
-    if (id === 'pane-world') Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
+    if (id === 'pane-world') {
+      Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
+      loadDuels();
+      $('#opp-list').innerHTML = '';
+      $('#btn-look').textContent = 'Look for opponents';
+    }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
   }

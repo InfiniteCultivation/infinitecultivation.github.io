@@ -104,3 +104,15 @@ Decisions agreed with the owner, to build into later milestones.
 - Leader can move the sect home to the region they stand in: 200 treasury stones, once every 7 days. Any region works, even one another sect controls — homes and territory are separate.
 - Many sects may share a home region for now; may need limits if the game gets crowded.
 - Stronghold: if a sect controls its own home region, that region's taxes, tribute speed and citizens' gift chance are ×1.5.
+
+## PvP (Milestone 5, built)
+- "Look for opponents" lists up to 20 players in your region with sect marks (★ your sect, ◆ ally), odds (Easy → Deadly) and why they can't be attacked if blocked.
+- Attacks: auto-resolved by realm, stage and root plus luck (each realm stage ≈ +1 rating; 3 rating points ≈ 73% win). Costs 15 stamina.
+  - Protected: towns are safe zones; players in seclusion; players more than 1 realm below you; same target only once per 6 hours.
+  - Winner (attacker or defender): +10% of stage qi instantly and +10% cultivation for 60 min.
+  - Attacker who loses: −15% cultivation for 60 min. Defender who loses: −5% for 30 min. Defender always notified.
+  - Same-sect and ally targets are allowed but flagged, with a stronger confirmation.
+- Duels: challenge anyone in your region (towns allowed) with an optional spirit-stone bet; stake is held until they accept/decline (10 min expiry, refunded). Winner takes the pot. No growth effects.
+- Boosts/penalties stack and only count while cultivating.
+- TO DO: fights must also depend on skills, martial arts and magic arts (owner requirement) — battle_rating is the single place to add them.
+- Later: chat, where players can arrange duels.
