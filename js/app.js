@@ -388,6 +388,7 @@
       loadNotes();
       tickCount += 1;
       if (tickCount % 20 === 0) { loadDuels(); refreshDmBadge(); }
+      if (tickCount % 10 === 3) refreshChatDots();
       if (tickCount % (duelWaiting ? 4 : 20) === 0) checkBattle();
     }, 1000);
     loadNotes(true);
@@ -1564,7 +1565,7 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
   };
 
-  function makeChat({ logEl, inputEl, formEl, labelEl, channel, onLabel }) {
+  function makeChat({ logEl, inputEl, formEl, labelEl, channel, onLabel, onSeen }) {
     let lastId = 0;
     let currentKey = null;
     let timer = null;
@@ -1595,6 +1596,7 @@
       if (reset && !data.messages.length) logEl.innerHTML = '<p class="muted center small-text empty-chat">No messages yet. Say hello.</p>';
       else if (data.messages.length) { const e = logEl.querySelector('.empty-chat'); if (e) e.remove(); }
       if (reset || near) logEl.scrollTop = logEl.scrollHeight;
+      if (onSeen && timer) onSeen(ch, lastId);
     }
     formEl.addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -1606,16 +1608,57 @@
       poll(false);
     });
     return {
-      start() { currentKey = null; poll(true); clearInterval(timer); timer = setInterval(() => poll(false), 4000); },
+      start() { currentKey = null; clearInterval(timer); timer = setInterval(() => poll(false), 4000); poll(true); },
       stop() { clearInterval(timer); timer = null; },
       switchTo() { currentKey = null; poll(true); }
     };
   }
 
+  // ---- new-message dots ----
+  let chatLatest = {};
+  function seenKey(ch) { return chatLatest[ch] ? `seen:${ch}:${chatLatest[ch].key}` : null; }
+  function markChatSeen(ch, id) {
+    const k = seenKey(ch);
+    if (!k) return;
+    const prev = Number(store.get(k) || 0);
+    if (id > prev) store.set(k, String(id));
+    paintChatDots();
+  }
+  function unseen(ch) {
+    const L = chatLatest[ch];
+    if (!L || !L.id) return false;
+    const k = seenKey(ch);
+    const v = store.get(k);
+    if (v == null) { store.set(k, String(L.id)); return false; }   // first visit: nothing is "new"
+    return L.id > Number(v);
+  }
+  function paintChatDots() {
+    const onChat = $('#pane-chat').classList.contains('active');
+    const onSect = $('#pane-sectchat').classList.contains('active');
+    let any = false;
+    ['region', 'continent', 'global'].forEach((ch) => {
+      const showing = onChat && chatChannel === ch;
+      const u = !showing && unseen(ch);
+      const chip = document.querySelector(`#chat-tabs .chip[data-ch="${ch}"] .chip-dot`);
+      if (chip) chip.hidden = !u;
+      any = any || u;
+    });
+    $('#tab-chat-dot').hidden = !any;
+    $('#tab-schat-dot').hidden = onSect || !unseen('sect');
+  }
+  let chatDotsBusy = false;
+  async function refreshChatDots() {
+    if (chatDotsBusy || !state) return;
+    chatDotsBusy = true;
+    try { const { data } = await sb.rpc('chat_latest'); if (data) { chatLatest = data; paintChatDots(); } } catch (e) { /* ignore */ }
+    chatDotsBusy = false;
+  }
+
   let chatChannel = store.get('chat_channel') || 'region';
   const chat = makeChat({
     logEl: $('#chat-log'), inputEl: $('#chat-input'), formEl: $('#chat-send'), labelEl: $('#chat-label'),
-    channel: () => chatChannel
+    channel: () => chatChannel,
+    onSeen: (ch, id) => markChatSeen(ch, id)
   });
   function markChatTabs() {
     document.querySelectorAll('#chat-tabs .chip').forEach((b) => b.classList.toggle('active', b.dataset.ch === chatChannel));
@@ -1625,11 +1668,13 @@
     store.set('chat_channel', chatChannel);
     markChatTabs();
     chat.switchTo();
+    paintChatDots();
   }));
 
   const sectChat = makeChat({
     logEl: $('#schat-log'), inputEl: $('#schat-input'), formEl: $('#schat-send'), labelEl: $('#schat-label'),
-    channel: () => (state && state.sect ? 'sect' : null)
+    channel: () => (state && state.sect ? 'sect' : null),
+    onSeen: (ch, id) => markChatSeen(ch, id)
   });
   function startSectChat() {
     const has = !!(state && state.sect);
@@ -2464,6 +2509,7 @@
     if (id === 'pane-trade') loadAuctions();
     if (id === 'pane-messages') loadInbox();
     if (id === 'pane-chat') { markChatTabs(); chat.start(); }
+    paintChatDots();
     if (id === 'pane-sectchat') startSectChat();
   }
   document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.go, b.dataset.sub)));
@@ -2574,6 +2620,21 @@
   route();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    // Auto-update: when a new version is published, the new service worker takes over
+    // and the page reloads itself onto it. Checks on open, every 5 minutes, and on return.
+    let hadController = !!navigator.serviceWorker.controller;
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) { hadController = true; return; }   // first install takes control: not an update
+      if (reloading) return;
+      reloading = true;
+      try { sessionStorage.setItem('updated', '1'); } catch (e) { /* */ }
+      window.location.reload();
+    });
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then((reg) => {
+      setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch(() => {}));
+    try { if (sessionStorage.getItem('updated')) { sessionStorage.removeItem('updated'); setTimeout(() => toast('The game was updated to the newest version.'), 1500); } } catch (e) { /* */ }
   }
 })();

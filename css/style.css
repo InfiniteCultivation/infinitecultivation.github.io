@@ -615,3 +615,6 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .ctl.c-npc.t-demonic { color: #ff8fb0; background: rgba(200,60,110,0.16); }
 .ctl.c-npc.t-righteous { color: #a8e6cf; background: rgba(95,196,160,0.14); }
 .ctl.c-npc.t-freed { color: var(--gold-2); background: rgba(214,178,94,0.12); border: 1px dashed rgba(214,178,94,0.5); }
+.chip { position: relative; }
+.chip-dot { display: inline-block; width: 7px; height: 7px; margin-left: 5px; border-radius: 50%; background: var(--danger); vertical-align: middle; }
+.chip-dot[hidden] { display: none; }
