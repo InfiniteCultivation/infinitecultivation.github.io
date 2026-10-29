@@ -1290,7 +1290,7 @@
       });
       b.disabled = state && state.spirit_stones < it.price;
       ul.appendChild(personRow(`<strong>${esc(it.name)}</strong>
-        <div class="tags">${it.known ? '<span class="lead">Known</span>' : ''}${it.min_realm > 1 ? `<span class="req">Needs realm ${it.min_realm}</span>` : ''}</div>
+        <div class="tags">${it.known ? '<span class="lead">Known</span>' : ''}${it.profession ? `<span class="prof-tag">${PROFS[it.profession] ? PROFS[it.profession].name : it.profession} only</span>` : ''}${it.min_realm > 1 ? `<span class="req">Needs realm ${it.min_realm}</span>` : ''}</div>
         <span class="muted small-text">${esc(it.description)}</span>`, [b]));
     });
   }
@@ -1659,7 +1659,7 @@
     renderArts();
   }
   function artTags(a) {
-    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.energy} energy</span>`;
+    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.profession ? `<span class="prof-tag">${PROFS[a.profession] ? PROFS[a.profession].name : a.profession}</span>` : ''}${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.energy} energy</span>`;
   }
   function renderArts() {
     const d = artsData;
@@ -1715,8 +1715,128 @@
     }));
   });
 
+  // ---------- Profession ----------
+  const PROFS = {
+    gatherer: { name: 'Gatherer', ico: '採', blurb: 'Read the land and harvest what others miss: herbs, ores, jade and rarer treasures from the wilds. Learns trap arts that punish enemies who strike you.' },
+    alchemist: { name: 'Alchemist', ico: '丹', blurb: 'Refine herbs and beast cores into pills. A Fire root helps greatly. Learns arts that strike and swallow pills in the same move.' }
+  };
+  let pfData = null;
+  async function loadProfession() {
+    const { data, error } = await sb.rpc('my_profession');
+    if (error) return toast(friendly(error));
+    pfData = data;
+    renderProfession();
+  }
+  function renderProfession() {
+    const d = pfData;
+    if (!d) return;
+    $('#pf-choose').hidden = !!d.profession;
+    $('#pf-main').hidden = !d.profession;
+    if (!d.profession) {
+      const box = $('#pf-choices');
+      box.innerHTML = '';
+      Object.entries(PROFS).forEach(([id, p]) => {
+        const aff = d.choices[id];
+        const card = document.createElement('div');
+        card.className = 'card prof-card';
+        card.innerHTML = `<div class="prof-head"><span class="h-ico">${p.ico}</span><h4 class="card-title">${p.name}</h4></div>
+          <p class="small-text">${p.blurb}</p>
+          <p class="muted small-text">For your root: ${esc(aff.note)} Can reach <strong>${tierOf(aff.max_cap)}</strong>.</p>`;
+        card.appendChild(smallBtn(`Become ${an(p.name)}`, 'primary', async () => {
+          const r = await sectCall('choose_profession', { p_prof: id }, `You are now ${an(p.name)}.`);
+          if (r) { pfData = r; renderProfession(); }
+        }));
+        box.appendChild(card);
+      });
+      return;
+    }
+    const p = PROFS[d.profession];
+    $('#pf-title').textContent = p.name;
+    $('#pf-tier').textContent = d.tier;
+    $('#pf-level').textContent = `${d.level} / ${d.cap}`;
+    $('#pf-bar').style.width = `${Math.min(100, (d.level_exact / d.cap) * 100)}%`;
+    $('#pf-cap').textContent = d.at_ceiling ? 'Your spirit root allows no higher tier.' : d.level_exact >= d.cap ? 'At the top of this tier — a breakthrough is needed.' : `Tier cap ${d.cap}`;
+    $('#pf-aff').textContent = `${d.affinity.note} Your root allows up to ${tierOf(d.affinity.max_cap)}.`;
+    const bt = $('#pf-bt');
+    bt.innerHTML = '';
+    if (d.can_breakthrough) {
+      const b = smallBtn(`Break through with the town trainer · ${fmt(d.breakthrough_cost)} stones`, 'primary', async () => {
+        const r = await sectCall('prof_breakthrough', {}, 'Breakthrough! Your next tier is open.');
+        if (r) { pfData = r; renderProfession(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      b.disabled = !d.in_town;
+      bt.appendChild(b);
+      if (!d.in_town) bt.insertAdjacentHTML('beforeend', '<p class="muted small-text">Visit a town to find a trainer.</p>');
+    } else if (d.level_exact >= d.cap && d.cap >= 50 && !d.at_ceiling) {
+      bt.innerHTML = '<p class="muted small-text">Town trainers only teach up to Low tier. A master will be needed (coming later).</p>';
+    }
+
+    const g = $('#pf-gather');
+    g.hidden = d.profession !== 'gatherer';
+    if (!g.hidden) {
+      $('#pf-g-where').textContent = d.in_town ? 'Nothing grows inside the town walls. Travel to the wilds to gather.' : `In ${d.region} you may find: ${d.finds.join(', ')}.`;
+      $('#pf-g-search').textContent = `${d.search_pct}%`;
+      $('#pf-g-multi').textContent = `${d.multi_pct}%`;
+      const gb = $('#btn-gather');
+      gb.disabled = d.in_town || d.stamina < d.gather_cost;
+      gb.textContent = d.stamina < d.gather_cost ? 'Too tired — rest a while' : `Gather (−${d.gather_cost} stamina · ${d.stamina} left)`;
+    }
+
+    const al = $('#pf-alchemy');
+    al.hidden = d.profession !== 'alchemist';
+    if (!al.hidden) {
+      $('#pf-energy').textContent = `Energy ${fmt(d.energy)} / ${fmt(d.energy_max)}`;
+      const ul = $('#pf-recipes');
+      ul.innerHTML = '';
+      d.recipes.forEach((r) => {
+        const enough = r.inputs.every((x) => x.have >= x.need);
+        const locked = d.level < r.min_level;
+        const b = smallBtn(locked ? `Level ${r.min_level}` : `Refine · ${r.energy} energy`, 'primary', async () => {
+          b.disabled = true;
+          const { data, error } = await sb.rpc('craft', { p_recipe: r.id });
+          if (error) { toast(friendly(error)); b.disabled = false; return; }
+          showProfResult(data.story, data.success ? [`<span class="gain item">+${data.made} ${esc(data.name)}</span>`] : ['<span class="gain bad">Ingredients lost</span>'], data.gain, data.success ? 'k-encounter' : 'k-beast_lost');
+          pfData = data.profession;
+          renderProfession();
+        });
+        b.disabled = locked || !enough || d.energy < r.energy;
+        const ins = r.inputs.map((x) => `<span class="${x.have >= x.need ? '' : 'short'}">${x.need}× ${esc(x.name)} (${x.have})</span>`).join(' · ');
+        ul.appendChild(personRow(`<strong>${esc(r.name)}</strong>
+          <div class="tags">${locked ? `<span class="req">Needs level ${r.min_level}</span>` : `<span class="lead">${r.chance}% success</span>`}</div>
+          <span class="muted small-text recipe-in">${ins}</span>`, [b]));
+      });
+    }
+  }
+  function an(w) { return `${/^[aeiou]/i.test(w) ? 'an' : 'a'} ${w}`; }
+  function tierOf(cap) { return cap >= 100 ? 'Peak' : cap >= 99 ? 'High' : cap >= 75 ? 'Mid' : cap >= 50 ? 'Low' : 'Early'; }
+  function showProfResult(story, bits, gain, cls) {
+    const box = $('#pf-result');
+    box.className = `card story ${cls}`;
+    box.innerHTML = `<p>${esc(story)}</p><div class="gains">${bits.join('')}${gain > 0 ? `<span class="gain qi">+${gain} profession</span>` : ''}</div>`;
+    box.hidden = false;
+  }
+  $('#btn-gather').addEventListener('click', async () => {
+    const gb = $('#btn-gather');
+    gb.disabled = true;
+    gb.textContent = 'Gathering…';
+    const { data, error } = await sb.rpc('gather');
+    if (error) { toast(friendly(error)); return renderProfession(); }
+    showProfResult(data.story, data.found.map((x) => `<span class="gain item">+${x.qty} ${esc(x.name)}${x.rare ? ' ✦' : ''}</span>`), data.gain, 'k-herb');
+    pfData = data.profession;
+    renderProfession();
+    renderHome(data.character);
+  });
+  $('#pf-change').addEventListener('click', function () {
+    if (!pfData) return;
+    const other = pfData.profession === 'gatherer' ? 'alchemist' : 'gatherer';
+    armed(this, `Tap again: become ${an(PROFS[other].name)} (level 1, 500 stones)`, async () => {
+      const r = await sectCall('choose_profession', { p_prof: other }, `You are now ${an(PROFS[other].name)}.`);
+      if (r) { pfData = r; $('#pf-result').hidden = true; renderProfession(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+    });
+  });
+
   // ---------- Battle ----------
-  let bv = null;            // current battle view from the server
+  let bv = null;           // current battle view from the server
   let bPoll = null;         // polling while waiting on the opponent
   let bTick = null;         // countdown
   let bIntro = '';
@@ -1774,6 +1894,7 @@
     if (f.atkb) tags.push('<span class="ft good">Empowered</span>');
     if (f.defb) tags.push('<span class="ft good">Guarded</span>');
     if (f.res > 0) tags.push(`<span class="ft good">Resonance ${f.res}</span>`);
+    if (f.trap) tags.push('<span class="ft good">Snare set</span>');
     return `<p class="f-name">${esc(f.name)}${mine ? ' <small>(you)</small>' : ''}</p>
       <div class="f-line"><span>HP</span><span>${fmt(f.hp)} / ${fmt(f.hpmax)}</span></div>${bar(f.hp, f.hpmax, 'hp')}
       ${f.enmax > 0 ? `<div class="f-line"><span>Energy</span><span>${fmt(f.en)} / ${fmt(f.enmax)}</span></div>${bar(f.en, f.enmax, 'en')}` : ''}
@@ -1943,6 +2064,7 @@
     clearInterval(dmTimer);
     if (id !== 'pane-battle') stopBattle();
     if (id === 'pane-arts') loadArts();
+    if (id === 'pane-profession') { $('#pf-result').hidden = true; loadProfession(); }
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
     window.scrollTo(0, 0);

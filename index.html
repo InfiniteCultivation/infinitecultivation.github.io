@@ -215,9 +215,10 @@
           <button class="hub-btn" data-go="pane-stats"><span class="h-ico">力</span>Stats<span class="hub-badge gold" id="hub-points" hidden></span></button>
           <button class="hub-btn" data-go="pane-skills"><span class="h-ico">技</span>Skills</button>
           <button class="hub-btn" data-go="pane-arts"><span class="h-ico">法</span>Arts</button>
+          <button class="hub-btn" data-go="pane-profession"><span class="h-ico">藝</span>Profession</button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">道</span>Cultivation<br>Styles<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">昇</span>Upgrade<small>Coming soon</small></button>
-          <button class="hub-btn" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
+          <button class="hub-btn wide" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
         </div>
 
         <div class="card soon">
@@ -284,6 +285,49 @@
           <h4 class="card-title">Learned arts</h4>
           <p class="muted small-text st-help">Strikes deal damage, techniques heal or empower you, reactions answer enemy arts, and ultimates must charge for 4 turns. Arts grow stronger as you use them — and cost more energy.</p>
           <ul class="people" id="ar-list"></ul>
+        </div>
+      </div>
+
+      <!-- Profession -->
+      <div class="pane" id="pane-profession">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div id="pf-choose" hidden>
+          <div class="card">
+            <h4 class="card-title">Choose a profession</h4>
+            <p class="muted small-text st-help">A profession is your craft alongside fighting. It unlocks its own arts, which you can mix with any others in your six slots. Your spirit root decides how far you can go. Your first choice is free; changing later costs 500 spirit stones and starts the new one at level 1.</p>
+          </div>
+          <div id="pf-choices"></div>
+        </div>
+        <div id="pf-main" hidden>
+          <div class="card">
+            <div class="bag-head"><h4 class="card-title" id="pf-title"></h4><span class="lead" id="pf-tier"></span></div>
+            <div class="meter">
+              <div class="meter-label"><span>Level</span><span id="pf-level"></span></div>
+              <div class="meter-track"><div class="meter-fill sk" id="pf-bar"></div></div>
+              <div class="meter-sub"><span id="pf-cap"></span><span></span></div>
+            </div>
+            <p class="muted small-text" id="pf-aff"></p>
+            <div id="pf-bt"></div>
+          </div>
+          <div class="card" id="pf-gather" hidden>
+            <h4 class="card-title">Gather</h4>
+            <p class="muted small-text" id="pf-g-where"></p>
+            <div class="stats">
+              <div class="stat"><span class="stat-label">Search · rare find</span><span class="stat-value" id="pf-g-search"></span></div>
+              <div class="stat"><span class="stat-label">Multi-gather · extra</span><span class="stat-value" id="pf-g-multi"></span></div>
+            </div>
+            <p class="muted small-text">Search grows with Perception, Multi-gather with Dexterity. Both grow with your level.</p>
+            <button class="btn primary" id="btn-gather">Gather</button>
+          </div>
+          <div class="card story" id="pf-result" hidden></div>
+          <div class="card" id="pf-alchemy" hidden>
+            <div class="bag-head"><h4 class="card-title">Pill refining</h4><span class="muted small-text" id="pf-energy"></span></div>
+            <p class="muted small-text">Refining costs energy, which recovers over time. Failed attempts lose the ingredients. Alchemists also get 30% more from pills they take in battle.</p>
+            <ul class="people" id="pf-recipes"></ul>
+          </div>
+          <div class="card">
+            <button class="btn ghost small" id="pf-change">Change profession (500 stones)</button>
+          </div>
         </div>
       </div>
 

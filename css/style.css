@@ -564,3 +564,14 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .btn.auto-btn { display: block; width: 100%; margin-top: 12px; }
 .auto-btn.on { color: var(--jade); border-color: rgba(95,196,160,0.6); background: rgba(95,196,160,0.1); }
 .card-title small { font-family: 'Inter', system-ui, sans-serif; font-size: .7rem; font-weight: 400; letter-spacing: 0; }
+
+/* ---------- Profession ---------- */
+.hub-btn.wide { grid-column: 1 / -1; min-height: 56px; grid-auto-flow: column; gap: 10px; }
+.hub-btn.wide .h-ico { font-size: 1.3rem; }
+.prof-card .prof-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.prof-card .prof-head .card-title { margin: 0; }
+.prof-card .h-ico { font-family: serif; font-size: 1.6rem; color: var(--gold-2); }
+.prof-card .btn { margin-top: 6px; }
+.prof-tag { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #e7c3ff; background: rgba(176,120,230,0.15); }
+.recipe-in .short { color: var(--danger); }
+#btn-gather { width: 100%; margin-top: 8px; }

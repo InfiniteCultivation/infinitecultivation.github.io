@@ -216,3 +216,16 @@ Decisions agreed with the owner, to build into later milestones.
 - Pills used in battle are consumed afterwards; each art use +0.5 proficiency; primary attack/defense skills +0.25 per fight.
 - Settings (Character › Arts): beasts = Ask me / Always auto; attacks I start = I choose / Auto.
 - Not yet: alchemist item arts, gatherer traps, class arts, NPC cultivators.
+
+## Classes & professions (owner design, Oct 29 2026)
+- Everyone has ONE combat class and ONE profession, so nobody is a pure non-combatant who gets steamrolled. Six art slots can mix general, class and profession arts.
+- Combat classes (owner's list): martial — Swordsman, Pugilist, Spearman; magical — Spiritualist, Elementalist (chooses a primary element); plus support classes.
+- Professions are for outside combat: gathering, mining and crafting of all sorts — armor, weapons, pills, talismans and arrays.
+
+## Step 8: professions v1 (built)
+- Gatherer and Alchemist so far. First choice free; changing costs 500 stones and restarts at level 1. Level 1–100 with tier caps; the town trainer breaks Early → Low for 250 stones; higher tiers need a master.
+- Spirit root sets affinity and the highest tier reachable. Alchemy: pure Fire ×1.5 up to Peak; Fire in 2 elements ×1.2 up to High; Fire in 3+ ×1.0 up to Mid; no Fire ×0.7 up to Low. Gathering: Wood/Earth gives a similar but gentler scale.
+- Gather: 10 stamina, not in towns. Region specialty or common materials; Search (Perception + level) finds the region's rare material; Multi-gather (Dexterity + level) finds extra.
+- Alchemy recipes: Energy, Healing, Qi Gathering (level 10), Purifying Dew (level 30), Spirit Condensing (level 40). They cost energy; failure loses the ingredients; great success doubles the output.
+- Class arts (sold in town markets, class-locked): Hidden Snare (Gatherer trap: the next enemy art that lands springs it, with a damage and stun chance), Pill-Infused Palm (Alchemist: strike and draw on a battle pill at 60% strength; common pills not used up), Venom Pill Mist (Alchemist poison). Alchemists get +30% from battle pills.
+- To do later: Miner (or fold into Gatherer), Blacksmith (weapons/armor), Talisman maker, Array master; equipment slots.
