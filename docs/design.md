@@ -127,3 +127,28 @@ Decisions agreed with the owner, to build into later milestones.
 - Mental defense: Willpower, Fortitude.
 - Physical attack: Strength, Agility, Dexterity.
 - Mental attack: Intelligence, Perception, Soul Power.
+- Arts spend ENERGY (separate pool), not cultivation qi.
+
+## Stat growth (owner design)
+- Each stat's maximum is capped by cultivation stage (example: stage 1 max 100, stage 5 max 500 → max = 100 × overall stage number).
+- Reaching a new stage gives some stat points automatically; higher stages give more.
+- Rare items, when ingested, give points to a specific stat.
+- Players can choose to TRAIN a stat instead of cultivating.
+- Training speed depends on how close the stat is to its max: going 89→90 with max 100 is slow (90% of max); with max 500 it is quick (18% of max).
+- Different arts use different stats as their multipliers.
+
+## Cultivation styles
+- Soul cultivation: the realm/stage progression (current qi system).
+- Body cultivation: bonus to physical stats — raises their caps and how fast they grow from training.
+- Mental cultivation: the same for mental stats.
+
+## Skills vs arts
+- Skills: natural body/mind techniques with no energy cost (punches, kicks, dodging, parrying...).
+- Arts: combat abilities that cost energy; martial (physical stats) or magic (mental stats).
+- Both learned from manuals or masters.
+
+## Proficiency tiers (skills and arts)
+- Level 1–100: Early 1–25, Low 26–50, Mid 51–75, High 76–99, Peak 100.
+- At the top of a tier you need a qualified trainer to break into the next tier.
+- NPC masters: paid, teach only the lowest quality.
+- Player masters (direct pupil): teach an art/skill starting 2 tiers below their own (High master → starts you at Low 26; Peak master → Mid 51, the highest possible start). Can help a pupil break through up to one tier below their own. Can also help the pupil's cultivation.
