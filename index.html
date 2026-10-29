@@ -186,9 +186,10 @@
           <button class="hub-btn" data-go="pane-arts"><span class="h-ico">法</span>Arts</button>
           <button class="hub-btn" data-go="pane-class"><span class="h-ico">武</span>Class</button>
           <button class="hub-btn" data-go="pane-profession"><span class="h-ico">藝</span>Profession</button>
+          <button class="hub-btn" data-go="pane-gear"><span class="h-ico">裝</span>Equipment</button>
           <button class="hub-btn" data-go="pane-styles"><span class="h-ico">道</span>Cultivation<br>Styles</button>
           <button class="hub-btn" data-go="pane-upgrade"><span class="h-ico">昇</span>Upgrade<span class="hub-badge gold" id="hub-up" hidden></span></button>
-          <button class="hub-btn span2" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
+          <button class="hub-btn" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
         </div>
 
         <div class="quick">
@@ -249,11 +250,6 @@
       <div class="pane" id="pane-skills">
         <button class="back" data-go="pane-character">‹ Character</button>
         <div class="card">
-          <h4 class="card-title">Equipment</h4>
-          <ul class="people gear-list" id="gear-list"></ul>
-          <p class="muted small-text st-help">Weapons add damage to everything you do — 25% more when the weapon suits your class. Armor blunts damage and adds health in battle. Equip gear from your Bag; Iron gear is sold in town markets, better grades are forged by Blacksmiths.</p>
-        </div>
-        <div class="card">
           <h4 class="card-title">Combat loadout</h4>
           <div class="pools" id="sk-pools"></div>
           <div class="train-banner" id="sk-practice" hidden></div>
@@ -292,6 +288,20 @@
           <h4 class="card-title">Learned arts</h4>
           <p class="muted small-text st-help">Strikes deal damage, techniques heal or empower you, reactions answer enemy arts, and ultimates must charge for 4 turns. Arts grow stronger as you use them — and cost more energy.</p>
           <ul class="people" id="ar-list"></ul>
+        </div>
+      </div>
+
+      <!-- Equipment -->
+      <div class="pane" id="pane-gear">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div class="card">
+          <h4 class="card-title">Equipped</h4>
+          <ul class="people gear-list" id="gear-list"></ul>
+          <p class="muted small-text st-help">Weapons add damage to everything you do — 25% more when the weapon suits your class. Armor blunts damage and adds health in battle. Iron gear is sold in town markets; better grades are forged by Blacksmiths.</p>
+        </div>
+        <div class="card">
+          <h4 class="card-title">In your bag</h4>
+          <ul class="people gear-list" id="gear-bag"></ul>
         </div>
       </div>
 

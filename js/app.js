@@ -1290,12 +1290,29 @@
     if (error) return toast(friendly(error));
     skillsData = data;
     renderSkills();
-    loadGear();
   }
   const WFIT = { sword: 'Swordsman', gauntlets: 'Body Cultivator', staff: 'Spellcaster', bell: 'Soul Cultivator' };
   async function loadGear() {
     const { data, error } = await sb.rpc('my_gear');
     if (!error && data) renderGear(data);
+    if (!itemCatalog) {
+      const r = await sb.from('items').select('*');
+      itemCatalog = Object.fromEntries((r.data || []).map((i) => [i.id, i]));
+    }
+    const inv = await sb.from('inventory').select('item_id,qty').eq('character_id', state.id).gt('qty', 0);
+    const ul = $('#gear-bag');
+    ul.innerHTML = '';
+    const gear = (inv.data || []).map((r) => ({ ...itemCatalog[r.item_id], qty: r.qty })).filter((it) => it.kind === 'gear');
+    if (!gear.length) ul.innerHTML = '<li class="empty">No spare gear. Buy Iron gear in a town market (Gear tab) or have a Blacksmith forge some.</li>';
+    gear.forEach((it) => {
+      const fit = it.effects.slot === 'weapon' && data && it.effects.wtype === data.fits ? '<span class="lead">Suits your class</span>' : '';
+      ul.appendChild(personRow(`<strong class="rar-t-${it.rarity}">${esc(it.name)} <span class="qty">×${it.qty}</span></strong>
+        <div class="tags"><span class="slot-tag">${it.effects.slot === 'weapon' ? 'Weapon' : 'Armor'}</span>${fit}</div>
+        <span class="muted small-text">${esc(it.description)}</span>`, [smallBtn('Equip', 'primary', async () => {
+          const r = await sectCall('equip_gear', { p_item: it.id }, `${it.name} equipped.`);
+          if (r) loadGear();
+        })]));
+    });
   }
   function renderGear(g) {
     const ul = $('#gear-list');
@@ -1306,7 +1323,7 @@
       ul.appendChild(personRow(it
         ? `<span class="muted small-text">${label}</span><strong class="rar-t-${it.rarity}">${esc(it.name)}</strong><div class="tags">${fit}</div><span class="muted small-text">${esc(it.description)}</span>`
         : `<span class="muted small-text">${label}</span><span class="muted">Nothing equipped</span>`,
-        it ? [smallBtn('Unequip', 'ghost', async () => { const r = await sectCall('unequip_gear', { p_slot: slot }); if (r) renderGear(r); })] : []));
+        it ? [smallBtn('Unequip', 'ghost', async () => { const r = await sectCall('unequip_gear', { p_slot: slot }); if (r) loadGear(); })] : []));
     });
   }
 
@@ -1960,10 +1977,10 @@
           card.insertAdjacentHTML('beforeend', '<p class="muted small-text">Pick your primary element (★ = in your spirit root):</p>');
           const chips = document.createElement('div');
           chips.className = 'chips wrap';
-          BASIC_ELEMENTS.forEach((el) => chips.appendChild(smallBtn(`${el}${d.roots.includes(el) ? ' ★' : ''}`, 'ghost', () => pickClass(id, el, `You are now a ${el} Spellcaster.`))));
+          BASIC_ELEMENTS.forEach((el) => chips.appendChild(smallBtn(`${el}${d.roots.includes(el) ? ' ★' : ''}`, 'ghost', function () { armed(this, `Confirm ${el}`, () => pickClass(id, el, `You are now a ${el} Spellcaster.`)); })));
           card.appendChild(chips);
         } else {
-          card.appendChild(smallBtn(`Become ${an(c.name)}`, 'primary', () => pickClass(id, null, `You are now ${an(c.name)}.`)));
+          card.appendChild(smallBtn(`Become ${an(c.name)}`, 'primary', function () { armed(this, 'Tap again to confirm', () => pickClass(id, null, `You are now ${an(c.name)}.`)); }));
         }
         box.appendChild(card);
       });
@@ -2027,9 +2044,11 @@
         card.innerHTML = `<div class="prof-head"><span class="h-ico">${p.ico}</span><h4 class="card-title">${p.name}</h4></div>
           <p class="small-text">${p.blurb}</p>
           <p class="muted small-text">For your root: ${esc(aff.note)} Can reach <strong>${tierOf(aff.max_cap)}</strong>.</p>`;
-        card.appendChild(smallBtn(`Become ${an(p.name)}`, 'primary', async () => {
-          const r = await sectCall('choose_profession', { p_prof: id }, `You are now ${an(p.name)}.`);
-          if (r) { pfData = r; renderProfession(); }
+        card.appendChild(smallBtn(`Become ${an(p.name)}`, 'primary', function () {
+          armed(this, 'Tap again to confirm', async () => {
+            const r = await sectCall('choose_profession', { p_prof: id }, `You are now ${an(p.name)}.`);
+            if (r) { pfData = r; renderProfession(); }
+          });
         }));
         box.appendChild(card);
       });
@@ -2360,6 +2379,7 @@
     if (id !== 'pane-battle') stopBattle();
     if (id === 'pane-arts') loadArts();
     if (id === 'pane-class') loadClass();
+    if (id === 'pane-gear') loadGear();
     if (id === 'pane-styles') loadStyles();
     if (id === 'pane-upgrade') loadUpgrades();
     if (id === 'pane-character') sb.rpc('my_upgrades').then(({ data }) => { if (data) { upData = data; const hb = $('#hub-up'); hb.hidden = !data.points; hb.textContent = data.points; } });
