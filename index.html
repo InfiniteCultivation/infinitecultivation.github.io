@@ -214,7 +214,7 @@
         <div class="hub">
           <button class="hub-btn" data-go="pane-stats"><span class="h-ico">力</span>Stats<span class="hub-badge gold" id="hub-points" hidden></span></button>
           <button class="hub-btn" data-go="pane-skills"><span class="h-ico">技</span>Skills</button>
-          <button class="hub-btn soon-btn" disabled><span class="h-ico">法</span>Arts<small>Coming soon</small></button>
+          <button class="hub-btn" data-go="pane-arts"><span class="h-ico">法</span>Arts</button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">道</span>Cultivation<br>Styles<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">昇</span>Upgrade<small>Coming soon</small></button>
           <button class="hub-btn" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
@@ -263,6 +263,59 @@
         </div>
       </div>
 
+      <!-- Arts -->
+      <div class="pane" id="pane-arts">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div class="card">
+          <h4 class="card-title">Battle order</h4>
+          <div class="pools" id="ar-pools"></div>
+          <p class="muted small-text st-help">Up to six arts. On autopilot — and whenever someone attacks you — they are used in this order whenever you have the energy; a charged ultimate goes first. With no energy, you meditate to recover. Reactions fire on their own when an enemy art comes at you.</p>
+          <ol class="art-slots" id="ar-slots"></ol>
+        </div>
+        <div class="card">
+          <h4 class="card-title">How you fight</h4>
+          <div class="mode-row"><span>When a beast attacks</span><div class="chips" id="ar-monster">
+            <button class="chip" data-v="manual">Ask me</button><button class="chip" data-v="auto">Always auto</button></div></div>
+          <div class="mode-row"><span>Attacks I start</span><div class="chips" id="ar-pvp">
+            <button class="chip" data-v="manual">I choose</button><button class="chip" data-v="auto">Auto</button></div></div>
+          <p class="muted small-text st-help">You can switch to auto or back at any time during a fight. If you do not act within 30 seconds, instinct picks for you.</p>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Learned arts</h4>
+          <p class="muted small-text st-help">Strikes deal damage, techniques heal or empower you, reactions answer enemy arts, and ultimates must charge for 4 turns. Arts grow stronger as you use them — and cost more energy.</p>
+          <ul class="people" id="ar-list"></ul>
+        </div>
+      </div>
+
+      <!-- Battle -->
+      <div class="pane" id="pane-battle">
+        <div class="card battle-head">
+          <p class="b-title" id="bt-title"></p>
+          <div class="fighters">
+            <div class="fighter" id="bt-me"></div>
+            <div class="fighter foe" id="bt-foe"></div>
+          </div>
+          <p class="b-status" id="bt-status"></p>
+        </div>
+        <div class="card" id="bt-choice" hidden>
+          <p id="bt-choice-text"></p>
+          <div class="row-btns"><button class="btn primary" id="bt-fight">Fight it yourself</button><button class="btn ghost" id="bt-autofight">Auto-fight</button></div>
+        </div>
+        <div class="card" id="bt-actions" hidden>
+          <div class="art-grid" id="bt-arts"></div>
+          <div class="row-btns small-row" id="bt-misc"></div>
+        </div>
+        <div class="card react-card" id="bt-react" hidden>
+          <p id="bt-react-text"></p>
+          <div class="art-grid" id="bt-react-arts"></div>
+        </div>
+        <div class="card story" id="bt-result" hidden></div>
+        <div class="card">
+          <div class="bag-head"><h4 class="card-title">Battle log</h4><label class="auto-toggle"><input type="checkbox" id="bt-auto"> Auto</label></div>
+          <ul class="b-log" id="bt-log"></ul>
+        </div>
+      </div>
+
       <!-- Market (towns) -->
       <div class="pane" id="pane-market">
         <button class="back" data-go="pane-world">‹ World</button>
@@ -275,6 +328,8 @@
             <button class="chip" data-mk="defense">Defense</button>
             <button class="chip" data-mk="defense_util">Defense utility</button>
             <button class="chip" data-mk="passive">Passive</button>
+            <button class="chip" data-mk="art">Arts</button>
+            <button class="chip" data-mk="pill">Pills</button>
           </div>
           <ul class="people" id="mk-list"></ul>
         </div>
@@ -380,6 +435,7 @@
               <div class="meter-sub"><span id="world-stamina-note"></span><span></span></div>
             </div>
             <button class="btn primary" id="btn-explore">Explore</button>
+            <button class="btn ghost" id="btn-hunt">Hunt beasts</button>
           </div>
 
           <div class="card story" id="world-result" hidden></div>

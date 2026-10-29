@@ -181,6 +181,7 @@
       loadWorld().then(tick).catch(() => {});
       loadDuels();
       refreshDmBadge();
+      checkBattle();
     } catch (e) {
       toast(friendly(e));
       show('screen-auth');
@@ -384,7 +385,7 @@
       tick();
       loadNotes();
       tickCount += 1;
-      if (tickCount % 20 === 0) { loadDuels(); refreshDmBadge(); }
+      if (tickCount % 20 === 0) { loadDuels(); refreshDmBadge(); checkBattle(); }
     }, 1000);
     loadNotes(true);
     if (!$('#screen-home').classList.contains('active')) show('screen-home');
@@ -575,6 +576,13 @@
       btn.disabled = secluded || !!state.travel || st < state.explore_cost;
       btn.textContent = secluded ? 'In seclusion' : state.travel ? 'Travelling…' : st < state.explore_cost ? 'Too tired — rest a while' : `Explore (−${state.explore_cost} stamina)`;
     }
+    const hb = $('#btn-hunt');
+    if (hb && hb.dataset.busy !== '1') {
+      const cost = state.explore_cost * 2;
+      hb.hidden = !!reg.is_town;
+      hb.disabled = modeNow() === 'seclusion' || !!state.travel || st < cost;
+      hb.textContent = st < cost ? `Hunt beasts (needs ${cost} stamina)` : `Hunt beasts (−${cost} stamina)`;
+    }
     const tag = $('#world-town');
     if (tag) tag.hidden = !reg.is_town;
     const specEl = $('#world-spec');
@@ -644,6 +652,15 @@
     const { data, error } = await sb.rpc('explore');
     btn.dataset.busy = '';
     if (error) { toast(friendly(error)); renderWorld(); return; }
+    if (data.battle) {
+      renderHome(data.character);
+      const box0 = $('#world-result');
+      box0.className = 'card story k-beast';
+      box0.innerHTML = `<p>${esc(data.story)}</p>${data.gift ? `<p class="gift">✿ ${esc(data.gift)}</p>` : ''}`;
+      box0.hidden = false;
+      openBattle(data.battle, data.story);
+      return;
+    }
     const box = $('#world-result');
     const bits = [];
     if (data.qi > 0) bits.push(`<span class="gain qi">+${fmt(data.qi)} qi</span>`);
@@ -1082,16 +1099,10 @@
   async function doAttack(o) {
     const { data, error } = await sb.rpc('attack', { p_target: o.id });
     if (error) return toast(friendly(error));
-    const box = $('#world-result');
-    const bits = [];
-    if (data.qi > 0) bits.push(`<span class="gain qi">+${fmt(data.qi)} qi</span>`);
-    bits.push(`<span class="gain ${data.won ? 'qi' : 'bad'}">${data.effect_pct > 0 ? '+' : ''}${data.effect_pct}% cultivation for ${data.effect_min} min</span>`);
-    box.className = `card story ${data.won ? 'k-encounter' : 'k-beast_lost'}`;
-    box.innerHTML = `<p class="fight-title">${data.won ? 'Victory' : 'Defeat'} · ${esc(data.opponent)}</p><p>${esc(data.story)}</p><div class="gains">${bits.join('')}</div>`;
-    box.hidden = false;
     showSub(null);
     renderHome(data.character);
-    loadOpponents();
+    $('#opp-list').innerHTML = '';
+    openBattle(data.battle, `You attack ${data.opponent}!`);
   }
 
   async function loadDuels() {
@@ -1113,13 +1124,9 @@
         smallBtn('Accept', 'primary', async () => {
           const r = await sectCall('respond_duel', { p_duel: x.id, p_accept: true });
           if (!r) return;
-          const box = $('#world-result');
-          box.className = `card story ${r.won ? 'k-encounter' : 'k-beast_lost'}`;
-          box.innerHTML = `<p class="fight-title">Duel ${r.won ? 'won' : 'lost'} · ${esc(r.opponent)}</p><p>${esc(r.story)}</p>
-            ${r.bet ? `<div class="gains"><span class="gain ${r.won ? 'stone' : 'bad'}">${r.won ? '+' : '−'}${fmt(r.won ? r.bet * 2 : r.bet)} spirit stones</span></div>` : ''}`;
-          box.hidden = false;
           showSub(null);
           renderHome(r.character); renderDuels(r.duels);
+          openBattle(r.battle, `You face ${r.opponent} in a duel.`);
         }),
         smallBtn('Decline', 'ghost', async () => { const r = await sectCall('respond_duel', { p_duel: x.id, p_accept: false }); if (r) renderDuels(r.duels); })
       ]));
@@ -1278,7 +1285,7 @@
     if (!mkData.in_town) { ul.innerHTML = '<li class="empty">Markets are only found in towns.</li>'; return; }
     mkData.items.filter((x) => x.slot_type === mkTab).forEach((it) => {
       const b = smallBtn(`Buy · ${fmt(it.price)}`, 'primary', async () => {
-        const r = await sectCall('market_buy', { p_item: it.id }, `Bought ${it.name}. Read it from your Bag.`);
+        const r = await sectCall('market_buy', { p_item: it.id }, it.slot_type === 'pill' ? `Bought ${it.name}. Use it in battle as your action.` : `Bought ${it.name}. Read it from your Bag.`);
         if (r) { mkData = r; renderMarket(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
       });
       b.disabled = state && state.spirit_stones < it.price;
@@ -1642,6 +1649,283 @@
     renderAuctions();
   });
 
+  // ---------- Arts ----------
+  const ART_TYPE = { strike: 'Strike', technique: 'Technique', reaction: 'Reaction', ultimate: 'Ultimate' };
+  let artsData = null;
+  async function loadArts() {
+    const { data, error } = await sb.rpc('my_arts');
+    if (error) return toast(friendly(error));
+    artsData = data;
+    renderArts();
+  }
+  function artTags(a) {
+    return `<span class="slot-tag t-${a.type}">${ART_TYPE[a.type] || a.type}</span>${a.element ? `<span class="el-tag">${esc(a.element)}</span>` : ''}<span class="req">${a.energy} energy</span>`;
+  }
+  function renderArts() {
+    const d = artsData;
+    if (!d) return;
+    renderPools($('#ar-pools'), d.pools);
+    const slots = $('#ar-slots');
+    slots.innerHTML = '';
+    for (let i = 1; i <= 6; i += 1) {
+      const a = d.arts.find((x) => x.slot === i);
+      const li = document.createElement('li');
+      li.className = a ? '' : 'empty-slot';
+      li.innerHTML = `<span class="slot-n">${i}</span><div class="p-main">${a ? `<strong>${esc(a.name)}</strong><div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level}</span></div>` : '<span class="muted">Empty</span>'}</div>`;
+      if (a) {
+        const box = document.createElement('div');
+        box.className = 'p-actions';
+        if (i > 1) box.appendChild(smallBtn('↑', 'ghost', () => equipArt(a.id, i - 1)));
+        if (i < 6) box.appendChild(smallBtn('↓', 'ghost', () => equipArt(a.id, i + 1)));
+        box.appendChild(smallBtn('Remove', 'ghost', () => equipArt(a.id, null)));
+        li.appendChild(box);
+      }
+      slots.appendChild(li);
+    }
+    ['monster', 'pvp'].forEach((k) => {
+      document.querySelectorAll(`#ar-${k} .chip`).forEach((b) => b.classList.toggle('active', b.dataset.v === d[`${k}_mode`]));
+    });
+    const ul = $('#ar-list');
+    ul.innerHTML = '';
+    if (!d.arts.length) { ul.innerHTML = '<li class="empty">You have not learned any arts yet. Art scrolls are sold in town markets and very rarely found while exploring.</li>'; return; }
+    const free = [1, 2, 3, 4, 5, 6].find((n) => !d.arts.some((x) => x.slot === n));
+    d.arts.forEach((a) => {
+      const btns = [];
+      if (a.slot == null) {
+        const b = smallBtn(free ? 'Equip' : 'Slots full', 'primary', () => equipArt(a.id, free));
+        b.disabled = !free;
+        btns.push(b);
+      }
+      ul.appendChild(personRow(`<strong>${esc(a.name)}</strong>
+        <div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level} · ${esc(a.tier)}</span>${a.slot ? `<span class="lead">Slot ${a.slot}</span>` : ''}</div>
+        <span class="muted small-text">${esc(a.description || '')}</span>`, btns));
+    });
+  }
+  async function equipArt(id, slot) {
+    const r = await sectCall('equip_art', { p_art: id, p_slot: slot });
+    if (r) { artsData = r; renderArts(); }
+  }
+  ['monster', 'pvp'].forEach((k) => {
+    document.querySelectorAll(`#ar-${k} .chip`).forEach((b) => b.addEventListener('click', async () => {
+      if (!artsData) return;
+      const m = k === 'monster' ? b.dataset.v : artsData.monster_mode;
+      const p = k === 'pvp' ? b.dataset.v : artsData.pvp_mode;
+      const r = await sectCall('set_combat_modes', { p_monster: m, p_pvp: p });
+      if (r) { artsData = r; renderArts(); }
+    }));
+  });
+
+  // ---------- Battle ----------
+  let bv = null;            // current battle view from the server
+  let bPoll = null;         // polling while waiting on the opponent
+  let bTick = null;         // countdown
+  let bIntro = '';
+  let bChoiceSeen = {};
+  let bBusy = false;
+  let bChecking = false;
+
+  function stopBattle() { clearTimeout(bPoll); clearInterval(bTick); bPoll = null; bTick = null; }
+
+  function openBattle(view, intro) {
+    if (!view) return;
+    bIntro = intro || '';
+    showPane('pane-battle');
+    renderBattle(view);
+  }
+
+  // Pop into a fight that needs us (e.g. a duel that was accepted while we were elsewhere).
+  async function checkBattle() {
+    if (bChecking || !state) return;
+    if ($('#pane-battle').classList.contains('active')) return;
+    bChecking = true;
+    try {
+      const { data } = await sb.rpc('my_battle');
+      if (data && data.status === 'active' && !(data.kind === 'attack' && data.me === 2)) openBattle(data, 'Your fight is still going!');
+    } catch (e) { /* ignore */ }
+    bChecking = false;
+  }
+
+  async function battleCall(fn, args) {
+    if (bBusy) return;
+    bBusy = true;
+    document.querySelectorAll('#pane-battle .art-btn, #bt-misc button').forEach((b) => { b.disabled = true; });
+    const { data, error } = await sb.rpc(fn, args);
+    bBusy = false;
+    if (error) { toast(friendly(error)); return refreshBattle(); }
+    renderBattle(data);
+  }
+  async function refreshBattle() {
+    if (!bv) return;
+    const { data, error } = await sb.rpc('battle_state', { p_id: bv.id });
+    if (!error && data) renderBattle(data);
+  }
+  function act(action) { battleCall('battle_act', { p_id: bv.id, p_action: action }); }
+
+  function bar(cur, max, cls) {
+    const pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
+    return `<div class="meter-track thin"><div class="meter-fill ${cls}" style="width:${pct}%"></div></div>`;
+  }
+  function fighterHtml(f, mine) {
+    const tags = [];
+    if (f.shield > 0) tags.push(`<span class="ft shield">Shield ${fmt(f.shield)}</span>`);
+    if (f.stun) tags.push('<span class="ft bad">Stunned</span>');
+    if (f.bleed) tags.push('<span class="ft bad">Wounded</span>');
+    if (f.weak) tags.push('<span class="ft bad">Weakened</span>');
+    if (f.atkb) tags.push('<span class="ft good">Empowered</span>');
+    if (f.defb) tags.push('<span class="ft good">Guarded</span>');
+    if (f.res > 0) tags.push(`<span class="ft good">Resonance ${f.res}</span>`);
+    return `<p class="f-name">${esc(f.name)}${mine ? ' <small>(you)</small>' : ''}</p>
+      <div class="f-line"><span>HP</span><span>${fmt(f.hp)} / ${fmt(f.hpmax)}</span></div>${bar(f.hp, f.hpmax, 'hp')}
+      ${f.enmax > 0 ? `<div class="f-line"><span>Energy</span><span>${fmt(f.en)} / ${fmt(f.enmax)}</span></div>${bar(f.en, f.enmax, 'en')}` : ''}
+      <div class="f-tags">${tags.join('')}</div>`;
+  }
+
+  function renderBattle(v) {
+    bv = v;
+    stopBattle();
+    const me = v.sides[v.me - 1];
+    const foe = v.sides[2 - v.me];
+    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : 'Ambush';
+    $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
+    $('#bt-me').innerHTML = fighterHtml(me, true);
+    $('#bt-foe').innerHTML = fighterHtml(foe, false);
+    $('#bt-auto').checked = !!v.auto;
+    $('#bt-auto').disabled = v.status !== 'active';
+    const active = v.status === 'active';
+
+    // the first-turn choice when a beast jumps you
+    const ch = $('#bt-choice');
+    ch.hidden = !(active && v.kind === 'monster' && !v.auto && !bChoiceSeen[v.id] && v.turn <= 2);
+    if (!ch.hidden) $('#bt-choice-text').textContent = `${bIntro || 'A beast attacks!'} Fight it turn by turn, or let instinct take over?`;
+
+    // action panel
+    const acts = $('#bt-actions');
+    acts.hidden = !(active && v.need === 'action' && !v.auto) || !ch.hidden;
+    if (!acts.hidden) {
+      const grid = $('#bt-arts');
+      grid.innerHTML = '';
+      v.arts.filter((a) => a.type !== 'reaction').forEach((a) => {
+        const b = document.createElement('button');
+        b.className = `art-btn t-${a.type}`;
+        let why = '';
+        if (!a.usable) {
+          if (a.type === 'ultimate' && me.charge < a.charge_need) why = `Charging ${me.charge}/${a.charge_need}`;
+          else if (a.cd > 0) why = `Recovering ${a.cd}`;
+          else why = 'Not enough energy';
+        }
+        b.innerHTML = `<strong>${esc(a.name)}</strong><small>${a.energy} energy${a.element ? ` · ${esc(a.element)}` : ''}</small>${why ? `<em>${why}</em>` : ''}`;
+        b.disabled = !a.usable;
+        b.onclick = () => act({ type: 'art', art: a.id });
+        grid.appendChild(b);
+      });
+      if (!v.arts.some((a) => a.type !== 'reaction')) grid.innerHTML = '<p class="muted small-text">No arts equipped — set them up under Character › Arts.</p>';
+      const misc = $('#bt-misc');
+      misc.innerHTML = '';
+      misc.appendChild(smallBtn('Meditate (+energy)', 'ghost', () => act({ type: 'meditate' })));
+      if (v.items.healing_pill > 0) misc.appendChild(smallBtn(`Healing Pill ×${v.items.healing_pill}`, 'ghost', () => act({ type: 'item', item: 'healing_pill' })));
+      if (v.items.energy_pill > 0) misc.appendChild(smallBtn(`Energy Pill ×${v.items.energy_pill}`, 'ghost', () => act({ type: 'item', item: 'energy_pill' })));
+      const flee = smallBtn(v.kind === 'duel' ? 'Yield' : 'Flee', 'ghost danger-btn', function () {
+        armed(this, v.kind === 'monster' ? 'Tap again to run' : 'Tap again — counts as a loss', () => act({ type: 'flee' }));
+      });
+      misc.appendChild(flee);
+    }
+
+    // reaction prompt
+    const rc = $('#bt-react');
+    rc.hidden = !(active && v.need === 'reaction' && !v.auto);
+    if (!rc.hidden) {
+      $('#bt-react-text').innerHTML = `<strong>${esc(foe.name)}</strong> uses <strong>${esc(v.pending.name)}</strong>${v.pending.element ? ` (${esc(v.pending.element)})` : ''}! Answer it?`;
+      const grid = $('#bt-react-arts');
+      grid.innerHTML = '';
+      v.arts.filter((a) => a.type === 'reaction').forEach((a) => {
+        const b = document.createElement('button');
+        b.className = 'art-btn t-reaction';
+        b.innerHTML = `<strong>${esc(a.name)}</strong><small>${a.energy} energy</small>${a.usable ? '' : `<em>${a.cd > 0 ? `Recovering ${a.cd}` : 'Not enough energy'}</em>`}`;
+        b.disabled = !a.usable;
+        b.onclick = () => act({ type: 'react', art: a.id });
+        grid.appendChild(b);
+      });
+      const pass = document.createElement('button');
+      pass.className = 'art-btn pass';
+      pass.innerHTML = '<strong>Take it</strong><small>Save your energy</small>';
+      pass.onclick = () => act({ type: 'pass' });
+      grid.appendChild(pass);
+    }
+
+    // log, newest at the bottom
+    const log = $('#bt-log');
+    log.innerHTML = v.log.map((x) => `<li class="l-${x.t} ${x.s === v.me ? 'mine' : 'theirs'}">${esc(x.text)}</li>`).join('');
+    log.scrollTop = log.scrollHeight;
+
+    // result
+    const res = $('#bt-result');
+    res.hidden = active;
+    if (!active) renderBattleResult(v);
+
+    // status line, countdown and polling
+    const statusEl = $('#bt-status');
+    const deadline = v.deadline ? new Date(v.deadline).getTime() : 0;
+    const clockFix = new Date(v.now).getTime() - Date.now();
+    const left = () => Math.max(0, Math.ceil((deadline - (Date.now() + clockFix)) / 1000));
+    const paint = () => {
+      if (!active) { statusEl.textContent = 'The fight is over.'; return; }
+      if (v.auto) { statusEl.textContent = v.need ? 'Autopilot is choosing…' : `Waiting for ${foe.name}… ${left()}s`; return; }
+      if (v.need === 'action') statusEl.textContent = `Your move · ${left()}s before instinct takes over`;
+      else if (v.need === 'reaction') statusEl.textContent = `React · ${left()}s`;
+      else statusEl.textContent = `${foe.name} is choosing… ${left()}s`;
+    };
+    paint();
+    if (active) {
+      bTick = setInterval(paint, 1000);
+      // waiting on them: poll; our turn: refresh once the clock runs out
+      const wait = v.need && !v.auto ? Math.max(1500, left() * 1000 + 1500) : 2000;
+      bPoll = setTimeout(refreshBattle, wait);
+    }
+  }
+
+  function renderBattleResult(v) {
+    const r = v.result || {};
+    const won = v.winner === v.me;
+    const res = $('#bt-result');
+    const bits = [];
+    if (r.qi > 0) bits.push(`<span class="gain qi">+${fmt(r.qi)} qi</span>`);
+    if (r.qi_lost > 0) bits.push(`<span class="gain bad">−${fmt(r.qi_lost)} qi</span>`);
+    if (r.stones > 0) bits.push(`<span class="gain stone">+${fmt(r.stones)} spirit stones</span>`);
+    if (r.item_name) bits.push(`<span class="gain item">+1 ${esc(r.item_name)}</span>`);
+    if (v.kind === 'attack' && r.effect_pct != null) {
+      const pct = v.me === 1 ? r.effect_pct : null;
+      if (pct != null) bits.push(`<span class="gain ${pct > 0 ? 'qi' : 'bad'}">${pct > 0 ? '+' : ''}${pct}% cultivation for ${r.effect_min} min</span>`);
+    }
+    if (v.kind === 'duel' && r.bet > 0) bits.push(`<span class="gain ${won ? 'stone' : 'bad'}">${won ? '+' : '−'}${fmt(won ? r.bet * 2 : r.bet)} spirit stones</span>`);
+    if (r.woke_in && !won) bits.push(`<span class="gain bad">Woke in ${esc(r.woke_in)} · 1 HP</span>`);
+    const title = r.fled && !won ? 'Escaped' : won ? 'Victory' : 'Defeat';
+    res.className = `card story ${won ? 'k-encounter' : 'k-beast_lost'}`;
+    res.innerHTML = `<p class="fight-title">${title}</p><p>${esc(r.story || '')}</p><div class="gains">${bits.join('')}</div>
+      <button class="btn primary" id="bt-done">Continue</button>`;
+    $('#bt-done').onclick = async () => {
+      try { renderHome(await loadCharacter()); } catch (e) { /* */ }
+      $('#world-result').hidden = true;
+      showPane('pane-world');
+    };
+  }
+
+  $('#bt-auto').addEventListener('change', (e) => { if (bv) battleCall('battle_auto', { p_id: bv.id, p_on: e.target.checked }); });
+  $('#bt-fight').addEventListener('click', () => { if (bv) { bChoiceSeen[bv.id] = true; renderBattle(bv); } });
+  $('#bt-autofight').addEventListener('click', () => { if (bv) { bChoiceSeen[bv.id] = true; battleCall('battle_auto', { p_id: bv.id, p_on: true }); } });
+
+  $('#btn-hunt').addEventListener('click', async () => {
+    const btn = $('#btn-hunt');
+    btn.dataset.busy = '1';
+    btn.disabled = true;
+    btn.textContent = 'Tracking…';
+    const { data, error } = await sb.rpc('hunt');
+    btn.dataset.busy = '';
+    if (error) { toast(friendly(error)); renderWorld(); return; }
+    renderHome(data.character);
+    const foe = data.battle.sides[1].name;
+    openBattle(data.battle, `You track down ${/^[aeiou]/i.test(foe) ? 'an' : 'a'} ${foe}.`);
+  });
+
   // ---------- Tabs ----------
   // Sub-pages inside the World tab (Travel, Cultivators nearby).
   function showSub(sub) {
@@ -1655,6 +1939,8 @@
     chat.stop();
     sectChat.stop();
     clearInterval(dmTimer);
+    if (id !== 'pane-battle') stopBattle();
+    if (id === 'pane-arts') loadArts();
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
     window.scrollTo(0, 0);

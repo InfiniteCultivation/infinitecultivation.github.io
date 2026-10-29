@@ -204,4 +204,15 @@ Decisions agreed with the owner, to build into later milestones.
 - Crafting classes (e.g. alchemist) have class skills/arts that combine with inventory items: using an Early-quality item does NOT consume it (fair vs combat classes' unlimited arts); higher-rarity items have a rapidly increasing chance to be consumed. An alchemist art can attack AND use an item (below a quality limit) in the same turn.
 - Gatherer-type classes can set traps on their turn that help counter attacks.
 - All classes can also learn general combat arts not tied to a class.
-- Defaults chosen by Claude pending owner veto: monster fights auto by default with a manual option; 30-second turn timer in live PvP (auto picks when it runs out); art types Strike / Technique / Reaction / Ultimate; hidden reactions; cooldowns; one reaction per action; Flee action; element Resonance.
+- Owner confirmed (Oct 29): when a beast attacks (exploring or a hunt) the player chooses manual or auto; 30-second turns, auto picks when time runs out; types Strike / Technique / Reaction / Ultimate; ultimates must build up over turns (not usable at the start); element Resonance only builds for yourself; elemental arts hit harder against the target's root (a guessing game unless you know their element); attackers can flee (still a loss with the penalty, but they keep their remaining HP); defeated in the wild = wake in the nearest town with 1 HP; arts cost more energy as they level up (energy pools also grow).
+
+## Step 7b: turn-based battles (built)
+- Battle state lives in a `battles` row (jsonb state machine): turn start (energy +6%, cooldowns/buffs tick, bleeding, stun, auto exchange) → action (art, meditate +20% energy, pill, flee) → reaction (defender's hidden reaction arts; one per action) → next turn. 15 rounds max, then decided by HP %.
+- Ultimates charge 1 per own turn and need 4; cost 50 energy; charge resets on use. Autopilot fires a charged ultimate first and saves energy for it.
+- Cooldown N = unusable for your next N turns. Art energy = base × (1 + (level−1)/99) → double at level 100. Art damage also grows with level.
+- Resonance: using an art of one of your own root elements adds +10% to your art damage (max 5 stacks).
+- Missed deadlines are filled in by the autopilot whenever either player (or the server) next looks at the battle, so abandoned fights still finish.
+- Rewards: beasts give qi, stones and loot (Hunt ×1.5, costs 2× explore stamina, not in towns). Losing to a beast: −5% qi, wake in the continent's town at 1 HP. Attacks: old win/lose effects; HP carries over for both; KO'd loser wakes in town; defender always fights on autopilot with their saved order. Duels: both start full, no lasting injury, winner takes the pot.
+- Pills used in battle are consumed afterwards; each art use +0.5 proficiency; primary attack/defense skills +0.25 per fight.
+- Settings (Character › Arts): beasts = Ask me / Always auto; attacks I start = I choose / Auto.
+- Not yet: alchemist item arts, gatherer traps, class arts, NPC cultivators.
