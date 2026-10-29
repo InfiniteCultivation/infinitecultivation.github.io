@@ -601,3 +601,4 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .alert-banner .a-ico { font-size: 1.5rem; }
 .alert-banner small { display: block; color: var(--muted); font-size: .75rem; margin-top: 2px; }
 .tabbar-btn { position: relative; }
+.alert-banner[hidden] { display: none; }
