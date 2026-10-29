@@ -648,3 +648,6 @@ button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer;
 .tc-hp { color: var(--muted); white-space: nowrap; }
 .en-line { margin-top: 3px; }
 #party-actions .btn { flex: 1; }
+/* NPC raids */
+.raid-banner { background: rgba(220, 80, 40, .14); border: 1px solid rgba(220, 80, 40, .45); }
+.raid-card { border-color: rgba(220, 80, 40, .45); }

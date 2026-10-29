@@ -192,6 +192,7 @@
       renderHome(ch);
       loadWorld().then(tick).catch(() => {});
       loadDuels();
+      loadRaid();
       refreshDmBadge();
       checkBattle();
     } catch (e) {
@@ -598,7 +599,12 @@
       tb.textContent = left > 0 ? `Travelling to ${state.travel.name} · arrives in ${duration(left)}` : `Arriving at ${state.travel.name}…`;
       if (left <= 0 && !arrivalCheck) {
         arrivalCheck = true;
-        loadCharacter().then((ch) => { arrivalCheck = false; renderHome(ch); renderRegions(); }).catch(() => { arrivalCheck = false; });
+        loadCharacter().then(async (ch) => {
+          arrivalCheck = false; renderHome(ch); renderRegions();
+          const { data: amb } = await sb.rpc('raid_arrival_check');
+          if (amb && amb.battle) openBattle(amb.battle, amb.story);
+          loadRaid();
+        }).catch(() => { arrivalCheck = false; });
       }
     } else tb.hidden = true;
 
@@ -1160,9 +1166,9 @@
         talk.disabled = n.talked;
         btns.push(talk);
       }
-      ul.appendChild(personRow(`<strong>${n.role === 'guardian' ? '⛩ ' : ''}${esc(n.name)}</strong>
+      ul.appendChild(personRow(`<strong>${n.role === 'guardian' ? '⛩ ' : n.role === 'raider' ? '🔥 ' : ''}${esc(n.name)}</strong>
         <div class="tags"><span class="npc-tag">${esc(n.title)}</span><span class="gain ${t[1]} tmp">${t[0]}</span><span class="odds o-${n.odds.toLowerCase()}">${n.odds}</span></div>
-        <span class="muted small-text">${REALMS[n.realm - 1]} ${n.stage} · ${n.role === 'guardian' ? `guards this region for ${esc(n.sect)}. Defeat them (sect leader or elder) to free the land for 3 days.` : n.sect ? `disciple of ${esc(n.sect)}` : 'wandering cultivator'}</span>
+        <span class="muted small-text">${REALMS[n.realm - 1]} ${n.stage} · ${n.role === 'guardian' ? `guards this region for ${esc(n.sect)}. Defeat them (sect leader or elder) to free the land for 3 days.` : n.role === 'raider' ? '<span class="hurt">raiding your sect — defeat them!</span>' : n.sect ? `disciple of ${esc(n.sect)}` : 'wandering cultivator'}</span>
         ${n.block ? `<span class="muted small-text block">${esc(n.block)}</span>` : ''}`, btns));
     });
     list.forEach((o) => {
@@ -1208,6 +1214,20 @@
       li.appendChild(box);
       ul.appendChild(li);
     });
+  }
+
+  // ---------- NPC raids on my sect ----------
+  async function loadRaid() {
+    const { data: r } = await sb.rpc('my_raid');
+    const al = $('#raid-alert');
+    $('#raid-card').hidden = !r;
+    al.hidden = !r;
+    if (!r) return;
+    const where = r.sightings.map((x) => `${esc(x.region)}${x.count > 1 ? ` (${x.count})` : ''}`).join(', ');
+    al.innerHTML = `<span class="a-ico">🔥</span><span><strong>The ${esc(r.name)} raid your lands</strong><small>${r.left} of ${r.total} raiders left · ${duration(secsLeft(r.ends_at))} before they plunder the treasury · tap for details</small></span>`;
+    al.onclick = () => showPane('pane-world');
+    $('#raid-body').innerHTML = `<p class="muted small-text">The <strong>${esc(r.name)}</strong> have invaded. Defeat every raider within <strong>${duration(secsLeft(r.ends_at))}</strong> and their loot goes to the treasury — otherwise they carry off 15% of it. They ambush sect members who explore or arrive where they lurk, and move every hour.</p>
+      <p class="small-text"><strong>${r.left} of ${r.total}</strong> raiders left · last seen in: ${where || '—'}</p>`;
   }
 
   // ---------- NPC sects based here ----------
@@ -2631,6 +2651,7 @@
       loadGuidance();
       loadParty();
       loadNpcSects();
+      loadRaid();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
