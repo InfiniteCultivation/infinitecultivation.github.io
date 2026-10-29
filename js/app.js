@@ -477,8 +477,10 @@
 
   // Mark for a region's controlling sect: yours, an ally, or another sect.
   function ctlTag(ctl, id) {
-    const label = ctl.relation === 'mine' ? `★ ${ctl.sect}` : ctl.relation === 'ally' ? `◆ Ally · ${ctl.sect}` : ctl.sect;
-    return `<span class="ctl c-${ctl.relation}"${id ? ` id="${id}"` : ''}>${esc(label)}</span>`;
+    const label = ctl.relation === 'mine' ? `★ ${ctl.sect}` : ctl.relation === 'ally' ? `◆ Ally · ${ctl.sect}`
+      : ctl.relation === 'npc' ? (ctl.freed_until ? `Freed · ${ctl.sect} gone` : `${ctl.temperament === 'demonic' ? '☠ ' : ctl.temperament === 'righteous' ? '☯ ' : ''}${ctl.sect}`) : ctl.sect;
+    const cls = ctl.relation === 'npc' ? `npc t-${ctl.freed_until ? 'freed' : ctl.temperament}` : ctl.relation;
+    return `<span class="ctl c-${cls}"${id ? ` id="${id}"` : ''}>${esc(label)}</span>`;
   }
 
   function dangerInfo(danger) {
@@ -1110,10 +1112,16 @@
     npcs.forEach((n) => {
       const t = TEMPER[n.temperament];
       const btns = [];
-      const atk = smallBtn('Attack', 'danger-btn ghost', function () { armed(this, 'Confirm attack', () => doAttackNpc(n)); });
-      atk.disabled = !!n.block;
-      btns.push(atk);
-      if (n.temperament !== 'hostile') {
+      if (n.role === 'guardian') {
+        const ch = smallBtn('Challenge guardian', 'primary', function () { armed(this, 'Confirm challenge', () => doAttackNpc(n)); });
+        ch.disabled = !!n.block;
+        btns.push(ch);
+      } else {
+        const atk = smallBtn('Attack', 'danger-btn ghost', function () { armed(this, 'Confirm attack', () => doAttackNpc(n)); });
+        atk.disabled = !!n.block;
+        btns.push(atk);
+      }
+      if (n.temperament !== 'hostile' && n.role !== 'guardian') {
         const talk = smallBtn(n.talked ? 'Talked today' : 'Talk', 'ghost', async () => {
           const r = await sectCall('talk_npc', { p_npc: n.id });
           if (!r) return;
@@ -1124,9 +1132,9 @@
         talk.disabled = n.talked;
         btns.push(talk);
       }
-      ul.appendChild(personRow(`<strong>${esc(n.name)}</strong>
+      ul.appendChild(personRow(`<strong>${n.role === 'guardian' ? '⛩ ' : ''}${esc(n.name)}</strong>
         <div class="tags"><span class="npc-tag">${esc(n.title)}</span><span class="gain ${t[1]} tmp">${t[0]}</span><span class="odds o-${n.odds.toLowerCase()}">${n.odds}</span></div>
-        <span class="muted small-text">${REALMS[n.realm - 1]} ${n.stage} · wandering cultivator</span>
+        <span class="muted small-text">${REALMS[n.realm - 1]} ${n.stage} · ${n.role === 'guardian' ? `guards this region for ${esc(n.sect)}. Defeat them (sect leader or elder) to free the land for 3 days.` : n.sect ? `disciple of ${esc(n.sect)}` : 'wandering cultivator'}</span>
         ${n.block ? `<span class="muted small-text block">${esc(n.block)}</span>` : ''}`, btns));
     });
     list.forEach((o) => {

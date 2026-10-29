@@ -268,3 +268,11 @@ Decisions agreed with the owner, to build into later milestones.
 - Shown in World › Cultivators nearby. Friendly/neutral: Talk once per day (rumours; friendly ones sometimes gift stones or an item). Anyone can be attacked (15 stamina). Hostile ones may ambush you while exploring (30% of encounters in their region).
 - NPCs fight with their class's arts on autopilot. Beat one: +10% stage qi and half their purse; they recover for 3 hours. Lose: −5% qi, they take 5% of your stones, you wake in town.
 - Later: NPC sects, NPC masters, admin-triggered events.
+
+## Step 15: NPC sects (built)
+- Owner rule: NPCs only ever attack you while you are exploring.
+- Five NPC sects, one per continent: Azure Cloud Sword Pavilion (righteous), Hundred Flowers Valley (neutral), Blood Sand Sect (demonic), Frost Moon Palace (neutral), Nine Nether Cult (demonic). Each holds its continent's two most dangerous unclaimed regions.
+- Each NPC region has a guardian (an Elder, realm = danger + 1, tougher than normal NPCs) who never wanders. Wanderers in NPC land became that sect's disciples: friendly for righteous sects, hostile for demonic ones; they stay home.
+- Player sects can't claim NPC land directly. A sect leader or elder challenges the guardian (World › Cultivators nearby). Winning frees the region for 3 days; any sect may claim it in that window, otherwise the NPC sect's hold returns.
+- Demonic territory: ambush chance while exploring is 50% of encounters instead of 30%.
+- Region tags show NPC control (☯ righteous, ☠ demonic, "Freed" when open).
