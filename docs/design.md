@@ -343,3 +343,10 @@ Decisions agreed with the owner, to build into later milestones.
 - Whole world is notified (notification + global chat). 10 minutes to be in that town and enter (host can't enter; max 32).
 - Single elimination, random seeding, byes go to players who haven't had one. Matches are manual battles with fresh HP (instinct after 30 s); a player stuck in another fight for 3 min forfeits. 3rd-place match between the semifinal losers.
 - Prizes paid automatically; unclaimed places (too few players) return to the host. Under 2 entrants = called off, prizes (not fee) returned.
+
+## Step 22 — Mystic & Divine realms (built)
+- Mystic: Foundation Establishment+, 200 stones, any town. Divine: Nascent Soul+, 1000 stones, Imperial Capital. One hour inside, once per 6 hours per realm.
+- Six areas: Gate (safe, the only exit) → deeper areas with rising danger and rarer loot. Search costs 8 stamina, 30 s cooldown (gatherers 15 s and higher find chance).
+- Searching may wake a guardian beast; party members in the same area fight beside you (up to 3). Lose → all realm treasures vanish, back to the gate.
+- Players can attack each other outside the gate (party joins on both sides). Winners choose 1 treasure per defeated member (5 min, else random); the rest vanish; losers go to the gate.
+- Leaving at the gate (or time running out) moves treasures into the bag. New realm-only items: Mystic Spirit Fruit, Mystic Jade Marrow, Soul-Washing Lotus, Divine Essence Pill, Fragment of the Heavenly Dao, True Dragon Scale, Phoenix Tail Feather.

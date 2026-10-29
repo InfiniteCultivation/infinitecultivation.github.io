@@ -195,6 +195,7 @@
       loadRaid();
       loadWar();
       loadTour();
+      loadRealm();
       refreshDmBadge();
       checkBattle();
     } catch (e) {
@@ -1303,6 +1304,134 @@
       ul.appendChild(li);
     });
   }
+
+  // ---------- Secret realms ----------
+  let realmData = null;
+  let realmIn = false;
+  async function loadRealm() {
+    const { data } = await sb.rpc('my_realm');
+    if (data) renderRealm(data);
+    return data;
+  }
+  function picksHtml(picks, box) {
+    box.innerHTML = '';
+    picks.forEach((p) => {
+      const row = document.createElement('div');
+      row.className = 'realm-pick';
+      row.innerHTML = `<p class="small-text">You defeated <strong>${esc(p.from)}</strong>. Keep one of their treasures (the rest vanish) — ${duration(Math.max(0, secsLeft(p.expires_at)))} to choose:</p>`;
+      const btns = document.createElement('div'); btns.className = 'war-form';
+      p.items.forEach((it) => btns.appendChild(smallBtn(`${it.name}${it.qty > 1 ? ` (×${it.qty})` : ''}`, 'ghost', async () => {
+        const r = await sectCall('realm_pick', { p_pick: p.id, p_item: it.item }, `You keep ${it.name}.`);
+        if (r) renderRealm(r);
+      })));
+      row.appendChild(btns);
+      box.appendChild(row);
+    });
+  }
+  function renderRealm(d) {
+    realmData = d;
+    realmIn = !!d.run;
+    const al = $('#realm-alert');
+    al.hidden = !d.run;
+    if (d.run) {
+      al.innerHTML = `<span class="a-ico">🌌</span><span><strong>You are inside the ${esc(d.run.name)}</strong><small>${esc(d.run.area_name)} · ${duration(Math.max(0, secsLeft(d.run.ends_at)))} left · ${d.bag.reduce((n, x) => n + x.qty, 0)} treasures carried · tap to return</small></span>`;
+      al.onclick = () => showPane('pane-realm');
+    }
+    // World card
+    const list = $('#realm-list');
+    list.innerHTML = '';
+    if (d.run) {
+      list.innerHTML = `<p class="small-text">You are inside the <strong>${esc(d.run.name)}</strong> (${esc(d.run.area_name)}).</p>`;
+      const row = document.createElement('div'); row.className = 'war-form';
+      row.appendChild(smallBtn('Return to the realm', 'primary', () => showPane('pane-realm')));
+      list.appendChild(row);
+    } else {
+      list.insertAdjacentHTML('beforeend', '<p class="muted small-text">Hidden worlds full of rare treasures. Search their areas for loot, but guardian beasts and other cultivators prowl inside. Fall to a beast and everything you carry vanishes; fall to a cultivator and the victor keeps one treasure from you. You keep what you carry out through the gate. Gatherers search twice as fast and find more.</p>');
+      d.realms.forEach((r) => {
+        const cd = r.cooldown_until && secsLeft(r.cooldown_until) > 0;
+        const b = smallBtn(cd ? `Again in ${duration(secsLeft(r.cooldown_until))}` : `Enter (${fmt(r.cost)} stones)`, 'primary', function () {
+          armed(this, 'Tap again to enter', async () => {
+            const res = await sectCall('enter_realm', { p_realm: r.id });
+            if (res) { renderRealm(res); showPane('pane-realm'); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+          });
+        });
+        b.disabled = !!r.why || cd;
+        list.appendChild(personRow(`<strong>${esc(r.name)}</strong>
+          <span class="muted small-text">Requires ${REALMS[r.min_realm - 1]} · enter from ${esc(r.where)} · one hour inside · once every 6 hours</span>
+          ${r.why && !r.why.startsWith('Requires') ? `<span class="muted small-text block">${esc(r.why)}</span>` : ''}`, [b]));
+      });
+      if (d.picks.length) { const box = document.createElement('div'); list.appendChild(box); picksHtml(d.picks, box); }
+    }
+    if (!d.run) return;
+    // Realm pane
+    const run = d.run;
+    $('#rl-name').textContent = run.name;
+    $('#rl-area').textContent = run.area_name;
+    $('#rl-meta').textContent = `${run.danger ? `Danger ${'✦'.repeat(run.danger)}` : 'Safe — no fighting at the gate'} · ${duration(Math.max(0, secsLeft(run.ends_at)))} left`;
+    $('#rl-event').textContent = run.last_event || '';
+    $('#rl-leave').hidden = run.area !== 1;
+    $('#rl-search').hidden = run.area === 1;
+    paintRealmSearch();
+    const ex = $('#rl-exits');
+    ex.innerHTML = '<span class="muted small-text">Paths:</span>';
+    run.exits.forEach((x) => ex.appendChild(smallBtn(`${x.name}${x.danger ? ` ${'✦'.repeat(x.danger)}` : ''}`, 'ghost', async () => {
+      const r = await sectCall('realm_move', { p_area: x.area });
+      if (r) renderRealm(r);
+    })));
+    $('#rl-picks-card').hidden = !d.picks.length;
+    picksHtml(d.picks, $('#rl-picks'));
+    const pp = $('#rl-people');
+    pp.innerHTML = '';
+    if (!d.people.length) pp.innerHTML = '<li class="muted small-text">Nobody else is here.</li>';
+    d.people.forEach((o) => {
+      const btns = [];
+      if (!o.party && run.area !== 1) btns.push(smallBtn('Attack', 'danger-btn ghost', function () {
+        armed(this, 'Confirm attack', async () => {
+          const r = await sectCall('realm_attack', { p_target: o.id });
+          if (r) { renderRealm(r); if (r.battle) openBattle(r.battle, r.story); }
+        });
+      }));
+      pp.appendChild(personRow(`<strong>${esc(o.name)}</strong>
+        <div class="tags">${o.party ? '<span class="warn-tag">Party</span>' : ''}<span class="odds o-${o.odds.toLowerCase()}">${o.odds}</span></div>
+        <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · carrying ${o.carrying} treasure${o.carrying === 1 ? '' : 's'}</span>`, btns));
+    });
+    const bag = $('#rl-bag');
+    bag.innerHTML = d.bag.length ? '' : '<li class="muted small-text">Nothing yet. Search deeper areas for rarer finds.</li>';
+    d.bag.forEach((it) => bag.appendChild(personRow(`<strong class="rar-t-${it.rarity}">${esc(it.name)} <span class="qty">×${it.qty}</span></strong><span class="rarity r-${it.rarity}">${it.rarity}</span>`, [])));
+    $('#rl-map').innerHTML = run.map.map((m) => `<li class="${m.area === run.area ? 'here' : ''}"><span>${esc(m.name)}</span><span class="muted small-text">${m.danger ? '✦'.repeat(m.danger) : 'safe'}${m.people ? ` · ${m.people} here` : ''}</span></li>`).join('');
+  }
+  function paintRealmSearch() {
+    const b = $('#rl-search');
+    if (!realmData || !realmData.run || b.dataset.busy === '1') return;
+    const left = secsLeft(realmData.run.search_ready_at);
+    b.disabled = left > 0;
+    b.textContent = left > 0 ? `Search again in ${Math.ceil(left)}s` : `Search (−8 stamina)${realmData.run.gatherer ? ' · gatherer' : ''}`;
+  }
+  setInterval(() => {
+    if (!$('#pane-realm').classList.contains('active')) return;
+    paintRealmSearch();
+  }, 1000);
+  setInterval(() => {
+    if (document.hidden || !$('#pane-realm').classList.contains('active')) return;
+    loadRealm().then((d) => { if (d && !d.run) showPane('pane-world'); });
+  }, 6000);
+  $('#rl-search').addEventListener('click', async () => {
+    const b = $('#rl-search');
+    b.dataset.busy = '1'; b.disabled = true; b.textContent = 'Searching…';
+    const { data, error } = await sb.rpc('realm_search');
+    b.dataset.busy = '';
+    if (error) { toast(friendly(error)); paintRealmSearch(); return; }
+    renderRealm(data);
+    if (data.battle) openBattle(data.battle, data.story);
+    try { renderHome(await loadCharacter()); } catch (e) { /* */ }
+  });
+  $('#rl-leave').addEventListener('click', async () => {
+    const r = await sectCall('leave_realm', {});
+    if (!r) return;
+    toast(r.brought ? `You step out of the realm carrying ${r.brought} treasure${r.brought === 1 ? '' : 's'}. They are in your bag.` : 'You step out of the realm empty-handed.');
+    renderRealm(r);
+    showPane('pane-world');
+  });
 
   // ---------- Tournaments ----------
   let tourData = null;
@@ -2609,7 +2738,7 @@
     const enemies = v.sides.filter((x) => (x.team !== undefined ? x.team !== myTeam : x !== me));
     if (bTarget && !(enemies.find((x) => x.idx === bTarget && x.alive))) bTarget = null;
     const foe = (bTarget && enemies.find((x) => x.idx === bTarget)) || enemies.find((x) => x.focus && x.alive) || enemies.find((x) => x.alive !== false) || v.sides[2 - v.me];
-    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : v.kind === 'npc_sect' ? 'Sect challenge' : v.kind === 'tournament' ? 'Tournament match' : 'Ambush';
+    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : v.kind === 'group_monster' ? 'Party hunt' : v.kind === 'npc_sect' ? 'Sect challenge' : v.kind === 'tournament' ? 'Tournament match' : v.kind === 'realm_monster' ? 'Realm guardian' : v.kind === 'realm_pvp' ? 'Realm clash' : 'Ambush';
     $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
     const fightersEl = document.querySelector('#pane-battle .fighters');
     if (v.team_battle) {
@@ -2761,6 +2890,7 @@
       if (pct != null) bits.push(`<span class="gain ${pct > 0 ? 'qi' : 'bad'}">${pct > 0 ? '+' : ''}${pct}% cultivation for ${r.effect_min} min</span>`);
     }
     if (v.kind === 'duel' && r.bet > 0) bits.push(`<span class="gain ${won ? 'stone' : 'bad'}">${won ? '+' : '−'}${fmt(won ? r.bet * 2 : r.bet)} spirit stones</span>`);
+    if (r.realm_lost > 0) bits.push(`<span class="gain bad">Lost ${r.realm_lost} realm treasure${r.realm_lost === 1 ? '' : 's'}</span>`);
     if (r.woke_in && !won) bits.push(`<span class="gain bad">Woke in ${esc(r.woke_in)} · 1 HP</span>`);
     const title = r.fled && !won ? 'Escaped' : won ? 'Victory' : 'Defeat';
     res.className = `card story ${won ? 'k-encounter' : 'k-beast_lost'}`;
@@ -2769,6 +2899,10 @@
     $('#bt-done').onclick = async () => {
       try { renderHome(await loadCharacter()); } catch (e) { /* */ }
       $('#world-result').hidden = true;
+      if (realmIn || (v.kind || '').startsWith('realm')) {
+        const d = await loadRealm();
+        if (d && d.run) return showPane('pane-realm');
+      }
       showPane('pane-world');
     };
   }
@@ -2804,6 +2938,7 @@
     sectChat.stop();
     clearInterval(dmTimer);
     if (id !== 'pane-battle') stopBattle();
+    if (id === 'pane-realm') loadRealm();
     if (id === 'pane-arts') loadArts();
     if (id === 'pane-class') loadClass();
     if (id === 'pane-gear') loadGear();
@@ -2826,6 +2961,7 @@
       loadRaid();
       loadWar();
       loadTour();
+      loadRealm();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }

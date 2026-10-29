@@ -682,3 +682,15 @@ button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer;
 .prize-row { display: grid; grid-template-columns: 52px 1fr 1.6fr 52px; gap: 6px; align-items: center; font-size: .82rem; }
 .prize-row .bet-input, .prize-row .mini-select { width: 100%; min-width: 0; max-width: none; }
 #tour-body .war-form { margin-bottom: 10px; }
+/* Secret realms */
+.realm-banner { background: rgba(140, 110, 255, .14); border: 1px solid rgba(160, 130, 255, .45); }
+.realm-head { background: linear-gradient(160deg, rgba(120, 90, 220, .22), rgba(20, 24, 40, .6)); border-color: rgba(160, 130, 255, .35); }
+.realm-head h2 { margin: 2px 0 4px; }
+.realm-event { margin: 10px 0; font-style: italic; }
+.realm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.realm-actions .btn { flex: 1; }
+.realm-exits { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+.realm-map { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.realm-map li { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: .85rem; }
+.realm-map li.here { outline: 1px solid rgba(160, 130, 255, .6); background: rgba(140, 110, 255, .12); }
+.realm-pick { margin-bottom: 8px; }

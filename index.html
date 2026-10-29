@@ -142,6 +142,7 @@
         <button class="alert-banner raid-banner" id="raid-alert" hidden></button>
         <button class="alert-banner war-banner" id="war-alert" hidden></button>
         <button class="alert-banner tour-banner" id="tour-alert" hidden></button>
+        <button class="alert-banner realm-banner" id="realm-alert" hidden></button>
 
         <div class="hub">
           <button class="hub-btn" data-go="pane-character"><span class="h-ico">人</span>Character</button>
@@ -354,6 +355,36 @@
       </div>
 
       <!-- Upgrades -->
+      <div class="pane" id="pane-realm">
+        <div class="card realm-head">
+          <p class="eyebrow" id="rl-name"></p>
+          <h2 id="rl-area"></h2>
+          <p class="muted small-text" id="rl-meta"></p>
+          <p class="realm-event" id="rl-event"></p>
+          <div class="realm-actions">
+            <button class="btn primary" id="rl-search">Search</button>
+            <button class="btn ghost" id="rl-leave" hidden>Leave the realm</button>
+          </div>
+          <div class="realm-exits" id="rl-exits"></div>
+        </div>
+        <div class="card" id="rl-picks-card" hidden>
+          <h4 class="card-title">Spoils of victory</h4>
+          <div id="rl-picks"></div>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Cultivators here</h4>
+          <ul class="people" id="rl-people"></ul>
+        </div>
+        <div class="card">
+          <div class="bag-head"><h4 class="card-title">Realm treasures</h4><span class="muted small-text">lost if you fall</span></div>
+          <ul class="people" id="rl-bag"></ul>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Map</h4>
+          <ul class="realm-map" id="rl-map"></ul>
+        </div>
+      </div>
+
       <div class="pane" id="pane-upgrade">
         <button class="back" data-go="pane-character">‹ Character</button>
         <div class="card">
@@ -600,6 +631,11 @@
               <button class="hub-btn" data-go="pane-market"><span class="h-ico">市</span>Market</button>
               <button class="hub-btn" id="btn-healer"><span class="h-ico">醫</span>Healer<small id="healer-note"></small></button>
             </div>
+          </div>
+
+          <div class="card realm-card" id="realm-card">
+            <h4 class="card-title">Secret realms</h4>
+            <div id="realm-list"></div>
           </div>
 
           <div class="card tour-card" id="tour-card">
