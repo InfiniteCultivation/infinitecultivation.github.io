@@ -198,8 +198,26 @@
     if (!state) return 'idle';
     const t = serverNow();
     if (state.seclusion_until && new Date(state.seclusion_until).getTime() > t) return 'seclusion';
-    if (state.cultivate_until && new Date(state.cultivate_until).getTime() > t) return 'active';
+    if (state.cultivate_until && new Date(state.cultivate_until).getTime() > t) {
+      // a training session started after this cultivation tap replaces it
+      if (trainingActive() && new Date(state.training.until).getTime() - TRAIN_SEC * 1000 > new Date(state.cultivate_until).getTime() - 3600 * 1000) return 'training';
+      return 'active';
+    }
+    if (trainingActive()) return 'training';
     return 'idle';
+  }
+  const TRAIN_SEC = 3600;
+  function trainingActive() {
+    if (!state || !state.training) return false;
+    const t = serverNow();
+    const until = new Date(state.training.until).getTime();
+    if (until <= t) return false;
+    // a Cultivate tap after training began ends the training
+    if (state.cultivate_until) {
+      const cultStart = new Date(state.cultivate_until).getTime() - 3600 * 1000;
+      if (cultStart > until - TRAIN_SEC * 1000 && cultStart <= t) return false;
+    }
+    return true;
   }
   function secsLeft(iso) { return iso ? (new Date(iso).getTime() - serverNow()) / 1000 : 0; }
   function liveQi() {
@@ -223,13 +241,15 @@
     const btn = $('#btn-home-cultivate');
     const st = $('#home-state');
     st.className = `slim-state m-${mode}`;
-    st.textContent = mode === 'seclusion' ? 'In seclusion' : mode === 'active' ? 'Cultivating' : 'Idle';
+    st.textContent = mode === 'seclusion' ? 'In seclusion' : mode === 'active' ? 'Cultivating' : mode === 'training' ? 'Training' : 'Idle';
     btn.dataset.mode = '';
     btn.className = 'btn jade';
     if (full && !(state.realm === 10 && state.stage === 10)) {
       btn.textContent = 'Qi full · Advance ›'; btn.dataset.mode = 'advance'; btn.className = 'btn primary'; btn.disabled = false;
     } else if (mode === 'seclusion') {
       btn.textContent = `In seclusion · ${duration(secsLeft(state.seclusion_until))} left`; btn.disabled = true;
+    } else if (mode === 'training') {
+      btn.textContent = `Training ${STAT_NAMES[state.training.stat]} · ${duration(secsLeft(state.training.until))} · tap to cultivate`; btn.disabled = btn.dataset.busy === '1';
     } else if (mode === 'active') {
       btn.textContent = `Cultivating · ${duration(secsLeft(state.cultivate_until))} left · tap to reset`; btn.disabled = btn.dataset.busy === '1';
     } else {
@@ -252,7 +272,10 @@
       cult.hidden = true; end.hidden = false; box.hidden = true;
     } else {
       end.hidden = true; cult.hidden = false; box.hidden = false;
-      if (mode === 'active') {
+      if (mode === 'training') {
+        status.textContent = `Training ${STAT_NAMES[state.training.stat]} · ${duration(secsLeft(state.training.until))} left. No qi is gathered while training.`;
+        cult.textContent = 'Stop training and cultivate · 1 hour';
+      } else if (mode === 'active') {
         status.textContent = `Cultivating · ${duration(secsLeft(state.cultivate_until))} left`;
         cult.textContent = 'Keep cultivating · reset to 1 hour';
       } else {
@@ -297,7 +320,7 @@
     });
     renderHomeButton(full);
     const mode = modeNow();
-    const rate = mode === 'seclusion' ? state.qi_rate * state.seclusion_mult : mode === 'active' ? state.qi_rate : 0;
+    const rate = mode === 'seclusion' ? state.qi_rate * state.seclusion_mult : mode === 'active' ? state.qi_rate : 0;  // training gathers no qi
     $('#home-rate').textContent = rate ? `+${Number(rate).toLocaleString('en-US', { maximumFractionDigits: 2 })} qi/sec` : 'Not cultivating';
     let eta;
     if (full) eta = 'Your qi is full. Advance to keep growing.';
@@ -341,6 +364,9 @@
     $('#char-name').textContent = ch.name;
     $('#char-realm').textContent = `${REALMS[ch.realm - 1]} · Stage ${ch.stage}`;
     $('#char-sect').textContent = ch.sect ? ch.sect.name : 'None';
+    const pts = ch.free_points || 0;
+    $('#hub-points').hidden = !pts;
+    $('#hub-points').textContent = pts;
     orbs($('#home-orbs'), ch.spirit_root);
     tick();
     clearInterval(ticker);
@@ -362,9 +388,9 @@
     const { data, error } = await sb.rpc('breakthrough');
     btn.dataset.busy = '';
     if (error) { toast(friendly(error)); tick(); return; }
-    if (data.major && data.success) toast(`Breakthrough! You have entered ${REALMS[data.realm - 1]}.`);
+    if (data.major && data.success) toast(`Breakthrough! You have entered ${REALMS[data.realm - 1]}. +${data.points} free stat points.`);
     else if (data.major) toast(`The breakthrough failed. ${fmt(data.qi_lost)} qi scattered.`);
-    else toast(`You reached Stage ${data.stage}.`);
+    else toast(`You reached Stage ${data.stage}.${data.points ? ` +${data.points} free stat points.` : ''}`);
     const card = $('#home-card');
     card.classList.remove('flash-ok', 'flash-fail');
     void card.offsetWidth;
@@ -1087,6 +1113,82 @@
 
   $('#btn-look').addEventListener('click', loadOpponents);
 
+  // ---------- Stats ----------
+  const STAT_NAMES = { str: 'Strength', agi: 'Agility', dex: 'Dexterity', con: 'Constitution', endu: 'Endurance',
+    intl: 'Intelligence', per: 'Perception', soul: 'Soul Power', wil: 'Willpower', fort: 'Fortitude' };
+  const STAT_GROUPS = [
+    { title: 'Physical attack', note: 'Martial arts and physical skills', keys: ['str', 'agi', 'dex'] },
+    { title: 'Physical defense', note: 'Resists martial attacks', keys: ['con', 'endu'] },
+    { title: 'Mental attack', note: 'Magic arts', keys: ['intl', 'per', 'soul'] },
+    { title: 'Mental defense', note: 'Resists magic', keys: ['wil', 'fort'] }
+  ];
+  let statsData = null;
+  let statsTimer = null;
+
+  async function loadStats() {
+    const { data, error } = await sb.rpc('my_stats');
+    if (error) return toast(friendly(error));
+    statsData = data;
+    renderStats();
+  }
+
+  function renderStats() {
+    const d = statsData;
+    if (!d) return;
+    $('#st-free').textContent = d.free_points;
+    $('#st-next').textContent = `+${d.next_points} points`;
+    $('#st-body').textContent = `Level ${Math.floor(d.body_level)}`;
+    $('#st-mind').textContent = `Level ${Math.floor(d.mind_level)}`;
+    const tb = $('#st-training');
+    if (d.training) {
+      tb.hidden = false;
+      tb.innerHTML = `<span>Training <strong>${STAT_NAMES[d.training.stat]}</strong> · ${duration(secsLeft(d.training.until))} left</span>`;
+      const stop = smallBtn('Stop', 'ghost', async () => {
+        const r = await sectCall('stop_training', {}, 'Training stopped.');
+        if (r) { statsData = r; renderStats(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      tb.appendChild(stop);
+    } else tb.hidden = true;
+
+    const wrap = $('#st-groups');
+    wrap.innerHTML = '';
+    STAT_GROUPS.forEach((g) => {
+      const card = document.createElement('div');
+      card.className = 'card stat-group';
+      card.innerHTML = `<h4 class="card-title">${g.title}</h4><p class="muted small-text g-note">${g.note}</p>`;
+      g.keys.forEach((k) => {
+        const v = d.stats[k];
+        const pct = Math.min(100, (v.value / Math.max(1, v.cap)) * 100);
+        const row = document.createElement('div');
+        row.className = 'stat-row' + (d.training && d.training.stat === k ? ' training' : '');
+        row.innerHTML = `<div class="sr-top"><strong>${STAT_NAMES[k]}</strong><span>${fmt(v.value)} <span class="muted">/ ${fmt(v.cap)}</span></span></div>
+          <div class="meter-track thin"><div class="meter-fill ${['str','agi','dex','con','endu'].includes(k) ? 'phys' : 'ment'}" style="width:${pct}%"></div></div>
+          <div class="sr-bottom"><span class="muted small-text">${v.rate > 0 ? `Training: +${v.rate} / hour` : 'At its cap'}</span><span class="sr-btns"></span></div>`;
+        const btns = row.querySelector('.sr-btns');
+        if (d.free_points > 0 && v.value < v.cap) {
+          btns.appendChild(smallBtn('+1', 'ghost', () => allocate(k, 1)));
+          if (d.free_points >= 5 && v.value + 5 <= v.cap) btns.appendChild(smallBtn('+5', 'ghost', () => allocate(k, 5)));
+        }
+        const training = d.training && d.training.stat === k;
+        const tbtn = smallBtn(training ? 'Training…' : 'Train', training ? 'ghost' : 'primary', () => train(k));
+        tbtn.disabled = training || v.rate <= 0 || (state && modeNow() === 'seclusion');
+        btns.appendChild(tbtn);
+        card.appendChild(row);
+      });
+      wrap.appendChild(card);
+    });
+  }
+
+  async function allocate(k, n) {
+    const r = await sectCall('allocate_points', { p_points: { [k]: n } });
+    if (r) { statsData = r; renderStats(); if (state) { state.free_points = r.free_points; $('#hub-points').hidden = !r.free_points; $('#hub-points').textContent = r.free_points; } }
+  }
+
+  async function train(k) {
+    const r = await sectCall('start_training', { p_stat: k }, `You begin training ${STAT_NAMES[k]} for an hour. Cultivation pauses while you train.`);
+    if (r) { statsData = r; renderStats(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  }
+
   // ---------- Chat (shared by Chat and Sect Chat) ----------
   const fmtTime = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const store = {
@@ -1373,6 +1475,14 @@
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
+    clearInterval(statsTimer);
+    if (id === 'pane-stats') { loadStats(); statsTimer = setInterval(() => {
+      if (!statsData || !statsData.training) return;
+      const left = secsLeft(statsData.training.until);
+      if (left <= 0) return loadStats();
+      const sp = $('#st-training span');
+      if (sp) sp.innerHTML = `Training <strong>${STAT_NAMES[statsData.training.stat]}</strong> · ${duration(left)} left`;
+    }, 1000); }
     if (id === 'pane-trade') loadAuctions();
     if (id === 'pane-messages') loadInbox();
     if (id === 'pane-chat') { markChatTabs(); chat.start(); }

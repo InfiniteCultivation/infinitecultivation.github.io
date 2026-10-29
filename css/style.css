@@ -465,3 +465,20 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .req.bad { color: var(--danger); background: rgba(255,122,107,0.12); }
 .lead { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; color: #06231a; background: var(--jade); }
 #pane-trade .back, #pane-messages .back { display: block; }
+
+/* Stats */
+.hub-badge.gold { background: var(--gold); color: #1a1406; }
+.train-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: rgba(240,160,90,0.12); border: 1px solid rgba(240,160,90,0.4); color: #ffcf9e; font-size: .85rem; }
+.train-banner[hidden] { display: none; }
+.st-help { margin: 12px 0 0; line-height: 1.45; }
+.stat-group .g-note { margin: -6px 0 10px; }
+.stat-row { padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.06); display: grid; gap: 6px; }
+.stat-row:first-of-type { border-top: 0; }
+.stat-row.training strong { color: #ffcf9e; }
+.sr-top, .sr-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sr-top strong { font-weight: 600; }
+.sr-btns { display: flex; gap: 6px; }
+.meter-fill.phys { background: linear-gradient(90deg, #e07b4f, #f0b27a); }
+.meter-fill.ment { background: linear-gradient(90deg, #7b6ee0, #b3a6ff); }
+.slim-state.m-training { color: #2a1406; background: #f0b27a; }
+.session-status.m-training { color: #ffcf9e; background: rgba(240,160,90,0.12); border: 1px solid rgba(240,160,90,0.35); }

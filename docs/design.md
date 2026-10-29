@@ -167,3 +167,11 @@ Decisions agreed with the owner, to build into later milestones.
 - Messages: direct messages to any character by name; unread badges.
 - Trade: auction house only (no direct trading, to stop alt-account feeding). 24-hour auctions, highest bid wins, each bid ≥5% higher, bids held in escrow and refunded when outbid, 5% fee on sales, up to 10 listings, cancel only before any bids.
 - Items have a minimum realm to use. Sect storehouse: one item per person per day, only to members strong enough to use it.
+
+## Stats & training (Step 6, built — defaults chosen, owner may change)
+- 10 stats, all start at 10. Cap = 100 × overall stage number × (1 + body or mental cultivation level / 100).
+- Free points per new stage: 5 + half the stage number (realm breakthrough +10 more). Spent on the Stats screen (+1 / +5), never above cap.
+- Training: tap Train on a stat → 1 hour. Replaces cultivating (no qi while training); cultivating or entering seclusion ends it; not allowed in seclusion.
+  Growth follows cap − (cap − value) × e^(−20 × (1 + level/100) × hours / cap): fast far from the cap, very slow near it.
+- Body cultivation level (0–100) rises 0.5 per hour of physical training; Mental level the same for mental stats.
+- Stats do not affect fights yet — that comes with skills, arts and the new combat (next step).

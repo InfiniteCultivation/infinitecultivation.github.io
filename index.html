@@ -211,7 +211,7 @@
         </div>
 
         <div class="hub">
-          <button class="hub-btn soon-btn" disabled><span class="h-ico">力</span>Stats<small>Coming soon</small></button>
+          <button class="hub-btn" data-go="pane-stats"><span class="h-ico">力</span>Stats<span class="hub-badge gold" id="hub-points" hidden></span></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">技</span>Skills<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">法</span>Arts<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">道</span>Cultivation<br>Styles<small>Coming soon</small></button>
@@ -222,6 +222,23 @@
         <div class="card soon">
           <p class="muted center">Tap Cultivate each hour while you play. Before you log off, rest in a town and enter seclusion.</p>
         </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="pane" id="pane-stats">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div class="card">
+          <h4 class="card-title">Stats</h4>
+          <div class="stats">
+            <div class="stat"><span class="stat-label">Free points</span><span class="stat-value" id="st-free"></span></div>
+            <div class="stat"><span class="stat-label">Next stage gives</span><span class="stat-value" id="st-next"></span></div>
+            <div class="stat"><span class="stat-label">Body cultivation</span><span class="stat-value" id="st-body"></span></div>
+            <div class="stat"><span class="stat-label">Mental cultivation</span><span class="stat-value" id="st-mind"></span></div>
+          </div>
+          <div class="train-banner" id="st-training" hidden></div>
+          <p class="muted small-text st-help">Each stat is capped by your cultivation stage. Training is fast when a stat is far below its cap and slows as it gets close. Training replaces cultivating while it runs (1 hour per tap). Body and mental cultivation rise as you train, raising caps and training speed.</p>
+        </div>
+        <div id="st-groups"></div>
       </div>
 
       <!-- Trade (auction house) -->
