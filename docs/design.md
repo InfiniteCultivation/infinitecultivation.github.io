@@ -235,3 +235,10 @@ Decisions agreed with the owner, to build into later milestones.
 - First choice free; changing costs 500 stones and restarts at level 1 (a Spellcaster switching element keeps their level). Class level rises with every fight (+1 for a win, +0.5 otherwise, slowing near the tier cap); the town trainer breaks Early → Low.
 - Passive bonuses scale with class level (×0.5 at level 1 → ×1.5 at 100): Swordsman crit +5%, bleed +10%; Body +10% battle HP, 5% leech, 20% stun resist; Spellcaster primary-element arts +20% damage and always build Resonance; Soul +15% battle energy, 15% mental resist, +30% energy regen.
 - Class arts (class-locked, 400 stones in markets): Crescent Moon Slash, Flowing Riposte (Swordsman); Iron Mountain Charge, Vajra Body (Body); Elemental Bolt (takes the primary element), Surging Tide of Qi (Spellcaster); Soul Lash, Mind Shackle (Soul). Class arts get +level/2 % damage.
+
+## Step 10: equipment + Blacksmith (built)
+- Two gear slots: weapon and armor. Gear is a normal stackable item (tradeable at auction); equipping takes it out of the bag, unequipping returns it.
+- Grades: Iron (common, sold in towns: weapons 150, armor 200), Jade (uncommon, forge level 15), Flamesteel (rare, 35), Thunderforged (epic, 60). Weapon damage +8/15/25/40%; armor blunts 5/10/15/25% of damage and adds 5/10/15/20% battle health.
+- Weapon types match classes: Sword (Swordsman), Gauntlets (Body Cultivator), Staff (Spellcaster), Soul Bell (Soul Cultivator). A matching weapon gives 25% more bonus. Any class may use any weapon.
+- Blacksmith profession: Metal root affinity (pure Metal ×1.5 up to Peak … no Metal ×0.7 up to Low). Forges all 20 gear pieces; costs energy; failure ruins the materials. Class art: Sundering Blow (Metal strike that stacks −15% defense, up to −45%).
+- Battle-only bonus health/energy never carries back out of a fight.

@@ -692,7 +692,7 @@
     $('#bag-stones').textContent = `${fmt(state.spirit_stones)} spirit stones`;
     const ul = $('#bag-list');
     ul.innerHTML = '';
-    const order = { legendary: 0, rare: 1, uncommon: 2, common: 3 };
+    const order = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
     const rows = (data || []).map((r) => ({ ...itemCatalog[r.item_id], qty: r.qty }))
       .sort((a, b) => (a.kind === b.kind ? order[a.rarity] - order[b.rarity] : a.kind === 'consumable' ? -1 : 1));
     $('#bag-empty').hidden = rows.length > 0;
@@ -705,7 +705,7 @@
       if (it.effects.tox_clear) fx.push(`−${it.effects.tox_clear} toxicity`);
       if (it.effects.perm_clear) fx.push(`−${it.effects.perm_clear} deep toxicity`);
       li.innerHTML = `<div class="it-main"><div class="it-top"><strong>${it.name}</strong><span class="qty">×${it.qty}</span></div>
-        <span class="rarity">${it.rarity} ${it.kind === 'material' ? 'material' : it.kind === 'manual' ? 'manual' : ''}${it.min_realm > 1 ? ` · realm ${it.min_realm}+` : ''}</span>
+        <span class="rarity">${it.rarity} ${it.kind === 'material' ? 'material' : it.kind === 'manual' ? 'manual' : it.kind === 'gear' ? (it.effects.slot === 'weapon' ? `weapon · best for ${WFIT[it.effects.wtype]}` : 'armor') : ''}${it.min_realm > 1 ? ` · realm ${it.min_realm}+` : ''}</span>
         <p>${it.description}</p>${fx.length ? `<p class="fx">${fx.join(' · ')}</p>` : ''}</div>`;
       if (it.kind === 'manual') {
         const b = document.createElement('button');
@@ -714,6 +714,16 @@
         b.onclick = async () => {
           const r = await sectCall('read_manual', { p_item: it.id });
           if (r) { toast(r.message); loadBag(); }
+        };
+        li.appendChild(b);
+      }
+      if (it.kind === 'gear') {
+        const b = document.createElement('button');
+        b.className = 'btn primary small';
+        b.textContent = 'Equip';
+        b.onclick = async () => {
+          const r = await sectCall('equip_gear', { p_item: it.id }, `${it.name} equipped.`);
+          if (r) loadBag();
         };
         li.appendChild(b);
       }
@@ -1177,6 +1187,24 @@
     if (error) return toast(friendly(error));
     skillsData = data;
     renderSkills();
+    loadGear();
+  }
+  const WFIT = { sword: 'Swordsman', gauntlets: 'Body Cultivator', staff: 'Spellcaster', bell: 'Soul Cultivator' };
+  async function loadGear() {
+    const { data, error } = await sb.rpc('my_gear');
+    if (!error && data) renderGear(data);
+  }
+  function renderGear(g) {
+    const ul = $('#gear-list');
+    ul.innerHTML = '';
+    [['weapon', 'Weapon'], ['armor', 'Armor']].forEach(([slot, label]) => {
+      const it = g[slot];
+      const fit = it && slot === 'weapon' && it.effects.wtype === g.fits ? '<span class="lead">Suits your class</span>' : '';
+      ul.appendChild(personRow(it
+        ? `<span class="muted small-text">${label}</span><strong class="rar-t-${it.rarity}">${esc(it.name)}</strong><div class="tags">${fit}</div><span class="muted small-text">${esc(it.description)}</span>`
+        : `<span class="muted small-text">${label}</span><span class="muted">Nothing equipped</span>`,
+        it ? [smallBtn('Unequip', 'ghost', async () => { const r = await sectCall('unequip_gear', { p_slot: slot }); if (r) renderGear(r); })] : []));
+    });
   }
 
   function renderSkills() {
@@ -1811,7 +1839,8 @@
   // ---------- Profession ----------
   const PROFS = {
     gatherer: { name: 'Gatherer', ico: '採', blurb: 'Read the land and harvest what others miss: herbs, ores, jade and rarer treasures from the wilds. Learns trap arts that punish enemies who strike you.' },
-    alchemist: { name: 'Alchemist', ico: '丹', blurb: 'Refine herbs and beast cores into pills. A Fire root helps greatly. Learns arts that strike and swallow pills in the same move.' }
+    alchemist: { name: 'Alchemist', ico: '丹', blurb: 'Refine herbs and beast cores into pills. A Fire root helps greatly. Learns arts that strike and swallow pills in the same move.' },
+    blacksmith: { name: 'Blacksmith', ico: '鍛', blurb: 'Forge weapons and armor from ore, jade and crystal. A Metal root helps greatly. Learns arts that shatter the enemy\'s defenses.' }
   };
   let pfData = null;
   async function loadProfession() {
@@ -1864,6 +1893,7 @@
       bt.innerHTML = '<p class="muted small-text">Town trainers only teach up to Low tier. A master will be needed (coming later).</p>';
     }
 
+    renderProfChange();
     const g = $('#pf-gather');
     g.hidden = d.profession !== 'gatherer';
     if (!g.hidden) {
@@ -1876,15 +1906,17 @@
     }
 
     const al = $('#pf-alchemy');
-    al.hidden = d.profession !== 'alchemist';
+    al.hidden = !['alchemist', 'blacksmith'].includes(d.profession);
     if (!al.hidden) {
+      $('#pf-al-title').textContent = d.profession === 'blacksmith' ? 'Forging' : 'Pill refining';
+      $('#pf-al-note').textContent = d.profession === 'blacksmith' ? 'Forging costs energy, which recovers over time. A failed forging ruins the materials. Gear you forge can be equipped from your Bag or sold at the auction house.' : 'Refining costs energy, which recovers over time. Failed attempts lose the ingredients. Alchemists also get 30% more from pills they take in battle.';
       $('#pf-energy').textContent = `Energy ${fmt(d.energy)} / ${fmt(d.energy_max)}`;
       const ul = $('#pf-recipes');
       ul.innerHTML = '';
       d.recipes.forEach((r) => {
         const enough = r.inputs.every((x) => x.have >= x.need);
         const locked = d.level < r.min_level;
-        const b = smallBtn(locked ? `Level ${r.min_level}` : `Refine · ${r.energy} energy`, 'primary', async () => {
+        const b = smallBtn(locked ? `Level ${r.min_level}` : `${d.profession === 'blacksmith' ? 'Forge' : 'Refine'} · ${r.energy} energy`, 'primary', async () => {
           b.disabled = true;
           const { data, error } = await sb.rpc('craft', { p_recipe: r.id });
           if (error) { toast(friendly(error)); b.disabled = false; return; }
@@ -1919,14 +1951,19 @@
     renderProfession();
     renderHome(data.character);
   });
-  $('#pf-change').addEventListener('click', function () {
-    if (!pfData) return;
-    const other = pfData.profession === 'gatherer' ? 'alchemist' : 'gatherer';
-    armed(this, `Tap again: become ${an(PROFS[other].name)} (level 1, 500 stones)`, async () => {
-      const r = await sectCall('choose_profession', { p_prof: other }, `You are now ${an(PROFS[other].name)}.`);
-      if (r) { pfData = r; $('#pf-result').hidden = true; renderProfession(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  function renderProfChange() {
+    const box = $('#pf-change-box');
+    if (!box || !pfData) return;
+    box.querySelectorAll('button').forEach((b) => b.remove());
+    Object.keys(PROFS).filter((k) => k !== pfData.profession).forEach((other) => {
+      box.appendChild(smallBtn(PROFS[other].name, 'ghost', function () {
+        armed(this, `Tap again: become ${an(PROFS[other].name)}`, async () => {
+          const r = await sectCall('choose_profession', { p_prof: other }, `You are now ${an(PROFS[other].name)}.`);
+          if (r) { pfData = r; $('#pf-result').hidden = true; renderProfession(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+        });
+      }));
     });
-  });
+  }
 
   // ---------- Battle ----------
   let bv = null;           // current battle view from the server

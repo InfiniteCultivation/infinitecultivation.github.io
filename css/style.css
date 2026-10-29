@@ -579,3 +579,7 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .bonus-list { margin: 8px 0; padding-left: 18px; font-size: .88rem; color: #9fe3c8; display: grid; gap: 4px; }
 .chips.wrap { flex-wrap: wrap; overflow: visible; }
 .prof-tag.cls { color: #ffd59e; background: rgba(240,170,80,0.14); }
+.gear-list .p-main strong { display: block; }
+.rar-t-uncommon { color: #8fd6a8; } .rar-t-rare { color: #8fc0ff; } .rar-t-epic { color: #d7a6ff; } .rar-t-legendary { color: var(--gold-2); }
+#pf-change-box { align-items: center; gap: 8px; }
+.bag li.rar-epic { border-left-color: #b77cff; }

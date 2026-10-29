@@ -248,6 +248,11 @@
       <div class="pane" id="pane-skills">
         <button class="back" data-go="pane-character">‹ Character</button>
         <div class="card">
+          <h4 class="card-title">Equipment</h4>
+          <ul class="people gear-list" id="gear-list"></ul>
+          <p class="muted small-text st-help">Weapons add damage to everything you do — 25% more when the weapon suits your class. Armor blunts damage and adds health in battle. Equip gear from your Bag; Iron gear is sold in town markets, better grades are forged by Blacksmiths.</p>
+        </div>
+        <div class="card">
           <h4 class="card-title">Combat loadout</h4>
           <div class="pools" id="sk-pools"></div>
           <div class="train-banner" id="sk-practice" hidden></div>
@@ -353,12 +358,12 @@
           </div>
           <div class="card story" id="pf-result" hidden></div>
           <div class="card" id="pf-alchemy" hidden>
-            <div class="bag-head"><h4 class="card-title">Pill refining</h4><span class="muted small-text" id="pf-energy"></span></div>
-            <p class="muted small-text">Refining costs energy, which recovers over time. Failed attempts lose the ingredients. Alchemists also get 30% more from pills they take in battle.</p>
+            <div class="bag-head"><h4 class="card-title" id="pf-al-title">Pill refining</h4><span class="muted small-text" id="pf-energy"></span></div>
+            <p class="muted small-text" id="pf-al-note"></p>
             <ul class="people" id="pf-recipes"></ul>
           </div>
           <div class="card">
-            <button class="btn ghost small" id="pf-change">Change profession (500 stones)</button>
+            <div class="chips wrap" id="pf-change-box"><span class="muted small-text">Change profession (500 stones, restart at level 1):</span></div>
           </div>
         </div>
       </div>
@@ -407,6 +412,7 @@
             <button class="chip" data-mk="passive">Passive</button>
             <button class="chip" data-mk="art">Arts</button>
             <button class="chip" data-mk="pill">Pills</button>
+            <button class="chip" data-mk="gear">Gear</button>
           </div>
           <ul class="people" id="mk-list"></ul>
         </div>
