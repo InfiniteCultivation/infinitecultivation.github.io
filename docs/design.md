@@ -54,3 +54,14 @@ Decisions agreed with the owner, to build into later milestones.
 ## Cultivation ceiling
 - Too much toxicity, or too weak a spirit root, can stop a character before the peak. The game tells them they have reached their limit.
 - Endgame roles at the limit: mentor lower-realm sect members, fight in tournaments and defend sect resources in sect wars, or hone a craft.
+
+## Toxicity — two bars (agreed Oct 29 2026)
+- Temporary toxicity: from light item use; fades over time; only slows cultivation speed.
+- Permanent toxicity: from going too far (overflowing temporary); does not fade; extremely hard to remove; lowers the cultivation ceiling.
+
+## Placeholders
+- Owner is fine with placeholder names for anything; they will rename what they don't like.
+
+## Root upgrades (agreed Oct 29 2026, not built yet)
+- Spirit roots can be upgraded through extremely rare items or encounters.
+- A lucky player might upgrade once; it must not be possible to keep climbing all the way to Mutant.
