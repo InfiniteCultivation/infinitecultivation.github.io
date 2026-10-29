@@ -143,7 +143,7 @@
     badge.textContent = unread > 9 ? '9+' : unread;
     $('#notes').classList.toggle('has-new', unread > 0);
     $('#tab-home-dot').hidden = unread === 0;
-    $('#hq-noti-val').textContent = `Noti: ${unread}`;
+    $('#hq-noti-val').textContent = String(unread);
     $('#hq-noti').classList.toggle('has-new', unread > 0);
     $('#notes-empty').hidden = rows.length > 0;
     const ul = $('#notes-list');
@@ -170,7 +170,7 @@
     await sb.rpc('mark_notifications_read');
     $('#notes-badge').hidden = true;
     $('#tab-home-dot').hidden = true;
-    $('#hq-noti-val').textContent = 'Noti: 0';
+    $('#hq-noti-val').textContent = '0';
     $('#hq-noti').classList.remove('has-new');
     $('#notes').classList.remove('has-new');
   }
