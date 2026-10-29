@@ -595,3 +595,4 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .up-now { color: #9fe3c8; display: block; }
 .npc-tag { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #c9d3e6; background: rgba(150,170,210,0.14); }
 .gain.tmp { font-size: .68rem; padding: 2px 8px; }
+.donate-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; } .donate-row select { flex: 1; min-width: 0; }

@@ -942,7 +942,28 @@
     renderMembersAndAllies(s, leader, officer);
   }
 
+  async function fillDonateSelect() {
+    if (!state) return;
+    if (!itemCatalog) {
+      const { data } = await sb.from('items').select('*');
+      itemCatalog = Object.fromEntries((data || []).map((i) => [i.id, i]));
+    }
+    const { data } = await sb.from('inventory').select('item_id,qty').eq('character_id', state.id).gt('qty', 0);
+    const sel = $('#don-item');
+    sel.innerHTML = '<option value="">Donate from your bag…</option>' + (data || [])
+      .filter((r) => itemCatalog[r.item_id])
+      .map((r) => `<option value="${r.item_id}">${esc(itemCatalog[r.item_id].name)} (${r.qty})</option>`).join('');
+  }
+  $('#btn-don-item').addEventListener('click', async () => {
+    const item = $('#don-item').value;
+    const qty = parseInt($('#don-qty').value, 10) || 1;
+    if (!item) return toast('Choose an item from your bag.');
+    const d = await sectCall('donate_item', { p_item: item, p_qty: qty }, `Donated ${qty} × ${itemCatalog[item] ? itemCatalog[item].name : item} to the storehouse.`);
+    if (d) { sectData = d; renderMySect(d); }
+  });
+
   function renderStoreAndMove(s, leader, officer) {
+    fillDonateSelect();
     // storehouse
     $('#store-note').textContent = s.storage.length
       ? (officer ? 'Tribute from your territory. Each disciple can receive one item per day, and only items they are strong enough to use.' : 'Tribute from your territory. The leader and elders hand these out.')
