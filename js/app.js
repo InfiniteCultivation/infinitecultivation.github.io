@@ -123,12 +123,49 @@
     return data;
   }
 
-  async function loadLog(characterId) {
-    const { data } = await sb.from('breakthrough_log')
-      .select('from_realm,from_stage,major,success,qi_lost,created_at')
-      .eq('character_id', characterId).order('created_at', { ascending: false }).limit(5);
-    return data || [];
+  // ---------- Notifications ----------
+  const NOTE_ICON = { system: '✦', seclusion: '☯', sect: '宗', attack: '⚔', trade: '⇄', gift: '✿' };
+  let notesLoadedAt = 0;
+
+  async function loadNotes(force) {
+    if (!state || (!force && Date.now() - notesLoadedAt < 20000)) return;
+    notesLoadedAt = Date.now();
+    const { data } = await sb.from('notifications')
+      .select('id,kind,title,body,created_at,read_at')
+      .eq('character_id', state.id).order('created_at', { ascending: false }).limit(30);
+    renderNotes(data || []);
   }
+
+  function renderNotes(rows) {
+    const unread = rows.filter((r) => !r.read_at).length;
+    const badge = $('#notes-badge');
+    badge.hidden = unread === 0;
+    badge.textContent = unread > 9 ? '9+' : unread;
+    $('#notes').classList.toggle('has-new', unread > 0);
+    $('#notes-empty').hidden = rows.length > 0;
+    const ul = $('#notes-list');
+    ul.innerHTML = '';
+    rows.forEach((r) => {
+      const li = document.createElement('li');
+      li.className = r.read_at ? '' : 'unread';
+      const when = new Date(r.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      li.innerHTML = `<span class="n-ico">${NOTE_ICON[r.kind] || '•'}</span><div class="n-main"><div class="n-top"><strong></strong><time>${when}</time></div><p></p></div>`;
+      li.querySelector('strong').textContent = r.title;
+      li.querySelector('p').textContent = r.body;
+      ul.appendChild(li);
+    });
+    if ($('#notes').open && unread) markNotesRead();
+  }
+
+  async function markNotesRead() {
+    await sb.rpc('mark_notifications_read');
+    $('#notes-badge').hidden = true;
+    $('#notes').classList.remove('has-new');
+  }
+
+  $('#notes').addEventListener('toggle', () => {
+    if ($('#notes').open && !$('#notes-badge').hidden) markNotesRead();
+  });
 
   async function route() {
     const { data: { session } } = await sb.auth.getSession();
@@ -184,7 +221,8 @@
     const end = $('#btn-end-secl');
     const box = $('#seclusion-box');
     const leftToday = Math.max(0, state.seclusion_left_today);
-    const town = state.region && state.region.is_town;
+    const atHome = !!(state.sect && state.region && state.sect.home_region === state.region.id);
+    const town = (state.region && state.region.is_town) || atHome;
     status.className = `session-status m-${mode}`;
     if (mode === 'seclusion') {
       status.textContent = `In seclusion · ${duration(secsLeft(state.seclusion_until))} left · ×${state.seclusion_mult} speed`;
@@ -205,8 +243,9 @@
       });
       const note = $('#secl-note');
       if (state.travel) note.textContent = 'You cannot enter seclusion while travelling.';
-      else if (!town) note.textContent = `Seclusion is only possible in a town.${nearestTownText()}`;
+      else if (!town) note.textContent = `Seclusion is only possible in a town or at your sect.${nearestTownText()}`;
       else if (leftToday < 7200) note.textContent = 'You have used today’s seclusion. It resets at midnight.';
+      else if (atHome) note.textContent = `At your sect's home: qi ×${Math.round(state.seclusion_mult * state.sect_seclusion_bonus * 100) / 100} faster (sect bonus included). You cannot explore or travel while secluded.`;
       else note.textContent = `For when you go offline. Gathers qi ×${state.seclusion_mult} faster. You cannot explore or travel while secluded.`;
     }
   }
@@ -260,23 +299,6 @@
     if ($('#pane-world').classList.contains('active')) renderWorld();
   }
 
-  function renderLog(rows) {
-    const ul = $('#home-log');
-    ul.innerHTML = '';
-    $('#home-log-card').hidden = rows.length === 0;
-    rows.forEach((r) => {
-      const li = document.createElement('li');
-      const when = new Date(r.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-      let what;
-      if (!r.major) what = `${REALMS[r.from_realm - 1]} Stage ${r.from_stage} → ${r.from_stage + 1}`;
-      else if (r.success) what = `Broke through to ${REALMS[r.from_realm]}`;
-      else what = `Failed to reach ${REALMS[r.from_realm]} (−${fmt(r.qi_lost)} qi)`;
-      li.className = r.major ? (r.success ? 'major ok' : 'major fail') : '';
-      li.innerHTML = `<span>${what}</span><time>${when}</time>`;
-      ul.appendChild(li);
-    });
-  }
-
   function renderHome(ch) {
     state = ch;
     syncedAt = Date.now();
@@ -291,8 +313,8 @@
     orbs($('#home-orbs'), ch.spirit_root);
     tick();
     clearInterval(ticker);
-    ticker = setInterval(tick, 1000);
-    loadLog(ch.id).then(renderLog);
+    ticker = setInterval(() => { tick(); loadNotes(); }, 1000);
+    loadNotes(true);
     if (!$('#screen-home').classList.contains('active')) show('screen-home');
   }
 
@@ -370,6 +392,12 @@
   function liveToxTemp() {
     if (!state) return 0;
     return Math.max(0, Number(state.tox_temp) - secsSince(state.tox_updated_at) / state.tox_decay_sec);
+  }
+
+  // Mark for a region's controlling sect: yours, an ally, or another sect.
+  function ctlTag(ctl, id) {
+    const label = ctl.relation === 'mine' ? `★ ${ctl.sect}` : ctl.relation === 'ally' ? `◆ Ally · ${ctl.sect}` : ctl.sect;
+    return `<span class="ctl c-${ctl.relation}"${id ? ` id="${id}"` : ''}>${esc(label)}</span>`;
   }
 
   function dangerInfo(danger) {
@@ -450,6 +478,10 @@
     }
     const tag = $('#world-town');
     if (tag) tag.hidden = !reg.is_town;
+    const ctlEl = $('#world-ctl');
+    const ctl = control[String(reg.id)];
+    ctlEl.hidden = !ctl;
+    if (ctl) ctlEl.outerHTML = ctlTag(ctl, 'world-ctl');
   }
   let arrivalCheck = false;
 
@@ -479,7 +511,8 @@
       const going = state.travel && state.travel.id === r.id;
       const li = document.createElement('li');
       li.className = here ? 'here' : '';
-      const townTag = r.is_town ? '<span class="town-tag">Town · seclusion</span>' : '';
+      const ctl = control[String(r.id)];
+      const townTag = (r.is_town ? '<span class="town-tag">Town · seclusion</span>' : '') + (ctl ? ctlTag(ctl) : '');
       li.innerHTML = `<div class="r-main"><strong>${r.name}</strong><div class="tags"><span class="danger ${di.cls}">Danger ${r.danger} · ${di.label}</span>${townTag}</div></div>`;
       const b = document.createElement('button');
       b.className = 'btn ghost small';
@@ -517,7 +550,8 @@
     if (data.item_name) bits.push(`<span class="gain item">+1 ${data.item_name}</span>`);
     if (data.extra_cost > 0) bits.push(`<span class="gain bad">−${data.extra_cost} extra stamina</span>`);
     box.className = `card story k-${data.kind}`;
-    box.innerHTML = `<p>${data.story}</p><div class="gains">${bits.join('')}</div>`;
+    const gift = data.gift ? `<p class="gift">✿ ${esc(data.gift)}</p>` : '';
+    box.innerHTML = `<p>${data.story}</p><div class="gains">${bits.join('')}</div>${gift}`;
     box.hidden = false;
     renderHome(data.character);
   });
@@ -589,12 +623,254 @@
     return false;
   }
 
+  // ---------- Sect ----------
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const ROLE = { leader: 'Sect Leader', elder: 'Elder', member: 'Disciple' };
+  let sectData = null;
+  let control = {};
+
+  async function loadControl() {
+    const { data } = await sb.rpc('region_control');
+    control = data || {};
+  }
+
+  async function loadSect() {
+    if (!state) return;
+    if (!state.sect) {
+      const { data, error } = await sb.rpc('list_sects');
+      if (error) return toast(friendly(error));
+      renderSectList(data || []);
+      return;
+    }
+    const { data, error } = await sb.rpc('my_sect');
+    if (error) return toast(friendly(error));
+    if (!data) { state.sect = null; return loadSect(); }
+    sectData = data;
+    renderMySect(data);
+  }
+
+  async function sectCall(fn, args, okMsg) {
+    const { data, error } = await sb.rpc(fn, args || {});
+    if (error) { toast(friendly(error)); return null; }
+    if (okMsg) toast(okMsg);
+    return data;
+  }
+
+  // refresh character (sect membership lives on it), then the sect screen
+  async function refreshAll() {
+    try { renderHome(await loadCharacter()); } catch (e) { /* ignore */ }
+    await loadControl();
+    loadSect();
+  }
+
+  function renderSectList(list) {
+    $('#sect-none').hidden = false;
+    $('#sect-mine').hidden = true;
+    $('#btn-found').textContent = `Found sect · ${fmt(300)} spirit stones`;
+    $('#sects-empty').hidden = list.length > 0;
+    const ul = $('#sect-list');
+    ul.innerHTML = '';
+    list.forEach((s) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="s-main"><strong>${esc(s.name)}</strong>
+        ${s.motto ? `<p class="motto">“${esc(s.motto)}”</p>` : ''}
+        <span class="muted small-text">Leader ${esc(s.leader)} · ${s.members} disciple${s.members === 1 ? '' : 's'} · Home: ${esc(s.home)} · ${s.regions} region${s.regions === 1 ? '' : 's'}</span></div>`;
+      const b = document.createElement('button');
+      b.className = 'btn small ' + (s.requested ? 'ghost' : 'primary');
+      b.textContent = s.requested ? 'Cancel request' : 'Ask to join';
+      b.onclick = async () => {
+        b.disabled = true;
+        const data = await sectCall(s.requested ? 'cancel_request' : 'request_join', { p_sect: s.id },
+          s.requested ? 'Request withdrawn.' : `Your request was sent to ${s.name}.`);
+        if (data) renderSectList(data); else b.disabled = false;
+      };
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+
+  $('#form-sect').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = ev.target;
+    setError(f, '');
+    const name = f.name.value.trim().replace(/\s+/g, ' ');
+    if (!/^[A-Za-z]+( [A-Za-z]+)*$/.test(name) || name.length < 3 || name.length > 24) return setError(f, 'Sect name must be 3–24 letters and spaces.');
+    setBusy(f, true, 'Founding…');
+    const { error } = await sb.rpc('create_sect', { p_name: name, p_motto: f.motto.value });
+    setBusy(f, false);
+    if (error) return setError(f, friendly(error));
+    f.reset();
+    toast(`${name} has been founded!`);
+    refreshAll();
+  });
+
+  function personRow(html, buttons) {
+    const li = document.createElement('li');
+    li.innerHTML = `<div class="p-main">${html}</div>`;
+    if (buttons && buttons.length) {
+      const box = document.createElement('div');
+      box.className = 'p-actions';
+      buttons.forEach((b) => box.appendChild(b));
+      li.appendChild(box);
+    }
+    return li;
+  }
+  function smallBtn(label, cls, onclick) {
+    const b = document.createElement('button');
+    b.className = `btn small ${cls}`;
+    b.textContent = label;
+    b.onclick = onclick;
+    return b;
+  }
+
+  function renderMySect(s) {
+    $('#sect-none').hidden = true;
+    $('#sect-mine').hidden = false;
+    const leader = s.my_role === 'leader';
+    const officer = leader || s.my_role === 'elder';
+    $('#sect-role').textContent = ROLE[s.my_role];
+    $('#sect-name').textContent = s.name;
+    $('#sect-motto').textContent = s.motto ? `“${s.motto}”` : '';
+    $('#sect-treasury').textContent = `${fmt(s.treasury)} stones`;
+    $('#sect-tax').textContent = s.tax_per_hour ? `+${fmt(s.tax_per_hour)} / hour` : 'None yet';
+    $('#sect-home').textContent = s.home.name;
+    $('#sect-count').textContent = `${s.members.length} / ${s.max_members}`;
+
+    // requests
+    $('#sect-requests-card').hidden = !(officer && s.requests.length);
+    const rq = $('#sect-requests');
+    rq.innerHTML = '';
+    s.requests.forEach((r) => {
+      rq.appendChild(personRow(`<strong>${esc(r.name)}</strong><span class="muted small-text">${esc(r.root)} root · ${REALMS[r.realm - 1]} ${r.stage}</span>`, [
+        smallBtn('Accept', 'primary', async () => { const d = await sectCall('respond_request', { p_char: r.id, p_accept: true }, `${r.name} has joined.`); if (d) renderMySect(d); }),
+        smallBtn('Decline', 'ghost', async () => { const d = await sectCall('respond_request', { p_char: r.id, p_accept: false }); if (d) renderMySect(d); })
+      ]));
+    });
+
+    // territory
+    const rg = $('#sect-regions');
+    rg.innerHTML = '';
+    if (!s.regions.length) rg.innerHTML = '<li class="empty">Your sect controls no land yet.</li>';
+    s.regions.forEach((r) => {
+      rg.appendChild(personRow(`<strong>${esc(r.name)}</strong><span class="muted small-text">Danger ${r.danger} · +${fmt(r.danger * 10)} stones / hour</span>`,
+        leader ? [smallBtn('Give up', 'ghost', function () {
+          armed(this, 'Confirm', async () => { const d = await sectCall('release_region', { p_region: r.id }, `${r.name} released.`); if (d) { await loadControl(); renderMySect(d); } });
+        })] : []));
+    });
+    const cb = $('#claim-box');
+    cb.innerHTML = '';
+    if (officer && state.region) {
+      const here = state.region;
+      const ctl = control[String(here.id)];
+      const p = document.createElement('p');
+      p.className = 'muted small-text claim-note';
+      if (state.travel) p.textContent = 'Arrive somewhere to claim it.';
+      else if (here.is_town) p.textContent = `${here.name} is a town — neutral ground that cannot be claimed.`;
+      else if (ctl && ctl.relation === 'mine') p.textContent = `Your sect already controls ${here.name}.`;
+      else if (ctl) p.textContent = `${here.name} is controlled by ${ctl.sect}.`;
+      else if (s.regions.length >= s.max_regions) p.textContent = `Your sect can control ${s.max_regions} regions for now.`;
+      else {
+        const cost = here.danger * s.claim_cost_per_danger;
+        p.textContent = `Claim the region you are standing in. Paid from the treasury. Its people will pay taxes, and disciples exploring there may receive gifts.`;
+        const b = smallBtn(`Claim ${here.name} · ${fmt(cost)} stones`, 'primary wide', async () => {
+          const d = await sectCall('claim_region', {}, `${here.name} is now yours.`);
+          if (d) { await loadControl(); renderMySect(d); }
+        });
+        b.disabled = s.treasury < cost;
+        cb.appendChild(p);
+        cb.appendChild(b);
+        return renderMembersAndAllies(s, leader, officer);
+      }
+      cb.appendChild(p);
+    } else if (!officer) {
+      cb.innerHTML = '<p class="muted small-text claim-note">The leader and elders can claim new territory.</p>';
+    }
+    renderMembersAndAllies(s, leader, officer);
+  }
+
+  function renderMembersAndAllies(s, leader, officer) {
+    const ml = $('#sect-members');
+    ml.innerHTML = '';
+    s.members.forEach((m) => {
+      const me = m.id === s.my_id;
+      const btns = [];
+      if (!me && leader) {
+        if (m.role === 'member') btns.push(smallBtn('Make Elder', 'ghost', async () => { const d = await sectCall('set_role', { p_char: m.id, p_role: 'elder' }); if (d) renderMySect(d); }));
+        if (m.role === 'elder') btns.push(smallBtn('Demote', 'ghost', async () => { const d = await sectCall('set_role', { p_char: m.id, p_role: 'member' }); if (d) renderMySect(d); }));
+        btns.push(smallBtn('Make Leader', 'ghost', function () {
+          armed(this, 'Confirm', async () => { const d = await sectCall('set_role', { p_char: m.id, p_role: 'leader' }, `${m.name} now leads the sect.`); if (d) refreshAll(); });
+        }));
+      }
+      if (!me && (leader || (s.my_role === 'elder' && m.role === 'member'))) {
+        btns.push(smallBtn('Expel', 'ghost danger-btn', function () {
+          armed(this, 'Confirm', async () => { const d = await sectCall('expel_member', { p_char: m.id }, `${m.name} was expelled.`); if (d) renderMySect(d); });
+        }));
+      }
+      ml.appendChild(personRow(`<strong>${esc(m.name)}${me ? ' <span class="you">you</span>' : ''}</strong>
+        <span class="role-tag r-${m.role}">${ROLE[m.role]}</span>
+        <span class="muted small-text">${REALMS[m.realm - 1]} ${m.stage} · ${esc(m.region)}</span>`, btns));
+    });
+
+    const al = $('#sect-allies');
+    al.innerHTML = '';
+    if (!s.alliances.length) al.innerHTML = '<li class="empty">No alliances.</li>';
+    s.alliances.forEach((a) => {
+      const btns = [];
+      if (leader && a.status === 'pending' && a.incoming) {
+        btns.push(smallBtn('Accept', 'primary', async () => { const d = await sectCall('respond_alliance', { p_sect: a.sect_id, p_accept: true }, `Allied with ${a.name}.`); if (d) { await loadControl(); renderMySect(d); } }));
+        btns.push(smallBtn('Decline', 'ghost', async () => { const d = await sectCall('respond_alliance', { p_sect: a.sect_id, p_accept: false }); if (d) renderMySect(d); }));
+      } else if (leader) {
+        btns.push(smallBtn(a.status === 'active' ? 'End' : 'Withdraw', 'ghost', function () {
+          armed(this, 'Confirm', async () => { const d = await sectCall('end_alliance', { p_sect: a.sect_id }); if (d) { await loadControl(); renderMySect(d); } });
+        }));
+      }
+      const label = a.status === 'active' ? 'Allied' : a.incoming ? 'Wants to ally with you' : 'Proposal sent';
+      al.appendChild(personRow(`<strong>${esc(a.name)}</strong><span class="ally-tag s-${a.status}">${label}</span>`, btns));
+    });
+
+    const pb = $('#propose-box');
+    pb.hidden = !leader;
+    if (leader) {
+      sb.rpc('list_sects').then(({ data }) => {
+        const taken = new Set(s.alliances.map((a) => a.sect_id));
+        const opts = (data || []).filter((x) => x.relation === 'none' && !taken.has(x.id));
+        const sel = $('#propose-select');
+        sel.innerHTML = opts.length ? opts.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('') : '<option value="">No other sects yet</option>';
+        $('#btn-propose').disabled = !opts.length;
+      });
+    }
+  }
+
+  $('#btn-propose').addEventListener('click', async () => {
+    const id = $('#propose-select').value;
+    if (!id) return;
+    const d = await sectCall('propose_alliance', { p_sect: id }, 'Alliance proposal sent.');
+    if (d) renderMySect(d);
+  });
+
+  $('#btn-donate').addEventListener('click', async () => {
+    const n = parseInt($('#donate-amount').value, 10);
+    if (!n || n < 1) return toast('Enter how many spirit stones to donate.');
+    const d = await sectCall('donate', { p_amount: n }, `You donated ${fmt(n)} spirit stones.`);
+    if (d) { $('#donate-amount').value = ''; sectData = d; renderMySect(d); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+  });
+
+  $('#btn-leave-sect').addEventListener('click', function () {
+    const alone = sectData && sectData.members.length === 1;
+    armed(this, alone ? 'Tap again — the sect will be disbanded' : 'Tap again to leave', async () => {
+      const d = await sectCall('leave_sect', {}, alone ? 'Your sect has been disbanded.' : 'You have left the sect.');
+      if (d) { sectData = null; refreshAll(); }
+      this.textContent = 'Leave sect';
+    });
+  });
+
   // ---------- Tabs ----------
   function showPane(id) {
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
     window.scrollTo(0, 0);
-    if (id === 'pane-world') loadWorld().then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
+    if (id === 'pane-world') Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
+    if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
   }
   document.querySelectorAll('.tabbar-btn').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.pane)));

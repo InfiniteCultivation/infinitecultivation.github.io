@@ -111,6 +111,16 @@
       </header>
 
       <div class="pane active" id="pane-cultivate">
+      <details class="card notes" id="notes">
+        <summary>
+          <span>Notifications</span>
+          <span class="badge" id="notes-badge" hidden></span>
+          <span class="chev">▾</span>
+        </summary>
+        <ul class="notes-list" id="notes-list"></ul>
+        <p class="muted center small-text" id="notes-empty" hidden>Nothing new.</p>
+      </details>
+
       <div class="card sheet" id="home-card">
         <h2 id="home-name"></h2>
         <p class="realm" id="home-realm"></p>
@@ -175,10 +185,6 @@
         <div class="orbs small" id="home-orbs"></div>
       </div>
 
-      <div class="card" id="home-log-card" hidden>
-        <h4 class="card-title">Recent breakthroughs</h4>
-        <ul class="log" id="home-log"></ul>
-      </div>
 
       <div class="card soon">
         <p class="muted center">Tap Cultivate each hour while you play. Before you log off, rest in a town and enter seclusion.</p>
@@ -190,7 +196,7 @@
         <div class="card here">
           <p class="eyebrow" id="world-continent"></p>
           <h2 id="world-region"></h2>
-          <p class="danger-line"><span class="danger" id="world-danger"></span> <span class="town-tag" id="world-town" hidden>Town · seclusion</span></p>
+          <p class="danger-line"><span class="danger" id="world-danger"></span> <span class="town-tag" id="world-town" hidden>Town · seclusion</span> <span class="ctl" id="world-ctl" hidden></span></p>
           <p class="muted desc" id="world-desc"></p>
 
           <div class="travel-banner" id="world-travel" hidden></div>
@@ -212,6 +218,77 @@
         </div>
       </div>
 
+      <!-- Sect -->
+      <div class="pane" id="pane-sect">
+        <div id="sect-none" hidden>
+          <div class="card">
+            <h4 class="card-title">A wandering cultivator</h4>
+            <p class="muted small-text">You belong to no sect. Join one below, or found your own. Your sect's home will be the region you are standing in.</p>
+            <form class="form" id="form-sect">
+              <label>Sect name
+                <input name="name" maxlength="24" autocomplete="off" required>
+                <small class="hint">3–24 letters and spaces</small>
+              </label>
+              <label>Motto <small class="hint">(optional)</small>
+                <input name="motto" maxlength="80" autocomplete="off">
+              </label>
+              <p class="error" hidden></p>
+              <button class="btn primary" type="submit" id="btn-found">Found sect</button>
+            </form>
+          </div>
+          <div class="card">
+            <h4 class="card-title">Sects of the world</h4>
+            <p class="muted center small-text" id="sects-empty" hidden>No sects have been founded yet.</p>
+            <ul class="sect-list" id="sect-list"></ul>
+          </div>
+        </div>
+
+        <div id="sect-mine" hidden>
+          <div class="card sect-head">
+            <p class="eyebrow" id="sect-role"></p>
+            <h2 id="sect-name"></h2>
+            <p class="muted motto" id="sect-motto"></p>
+            <div class="stats">
+              <div class="stat"><span class="stat-label">Treasury</span><span class="stat-value" id="sect-treasury"></span></div>
+              <div class="stat"><span class="stat-label">Taxes</span><span class="stat-value" id="sect-tax"></span></div>
+              <div class="stat"><span class="stat-label">Home</span><span class="stat-value" id="sect-home"></span></div>
+              <div class="stat"><span class="stat-label">Disciples</span><span class="stat-value" id="sect-count"></span></div>
+            </div>
+            <div class="donate">
+              <input id="donate-amount" type="number" min="1" inputmode="numeric" placeholder="Spirit stones">
+              <button class="btn ghost small" id="btn-donate">Donate</button>
+            </div>
+          </div>
+
+          <div class="card" id="sect-requests-card" hidden>
+            <h4 class="card-title">Requests to join</h4>
+            <ul class="people" id="sect-requests"></ul>
+          </div>
+
+          <div class="card">
+            <h4 class="card-title">Territory</h4>
+            <ul class="people" id="sect-regions"></ul>
+            <div id="claim-box"></div>
+          </div>
+
+          <div class="card">
+            <h4 class="card-title">Disciples</h4>
+            <ul class="people" id="sect-members"></ul>
+          </div>
+
+          <div class="card">
+            <h4 class="card-title">Alliances</h4>
+            <ul class="people" id="sect-allies"></ul>
+            <div class="propose" id="propose-box" hidden>
+              <select id="propose-select"></select>
+              <button class="btn ghost small" id="btn-propose">Propose</button>
+            </div>
+          </div>
+
+          <button class="btn ghost" id="btn-leave-sect">Leave sect</button>
+        </div>
+      </div>
+
       <!-- Bag -->
       <div class="pane" id="pane-bag">
         <div class="card">
@@ -227,6 +304,7 @@
       <nav class="tabbar" id="tabbar">
         <button class="tabbar-btn active" data-pane="pane-cultivate"><span class="ico">修</span>Cultivate</button>
         <button class="tabbar-btn" data-pane="pane-world"><span class="ico">界</span>World</button>
+        <button class="tabbar-btn" data-pane="pane-sect"><span class="ico">宗</span>Sect</button>
         <button class="tabbar-btn" data-pane="pane-bag"><span class="ico">囊</span>Bag</button>
       </nav>
     </section>

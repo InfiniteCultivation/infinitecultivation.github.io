@@ -83,3 +83,16 @@ Decisions agreed with the owner, to build into later milestones.
 - Personal upgrade trees (alongside sect trees): longer cultivation/seclusion time and bigger bonuses. Points earned per cultivation level, or rarely in Divine Realms.
 - Stat allocation, inspired by a "Parameters" screen with sliders: points earned through actions, put into areas such as cultivation vs combat; saved builds; reset only with rare special items.
 - Possible in-app purchase market if the game goes to Google Play / App Store.
+
+## Notifications (built)
+- Collapsible list at the top of the Cultivate tab with an unread badge. For things that happen TO the player (attacks, trade offers, sect events, seclusion finished) — not a log of their own upgrades.
+
+## Sects (Milestone 4, built)
+- Found a sect for 300 spirit stones; its home is the region you are standing in. Up to 30 members.
+- Ranks: Sect Leader, Elder, Disciple. Leader: ranks, pass leadership, expel, alliances, give up land. Elders: accept requests, expel disciples, claim land.
+- Join by request; leader/elders get notified and accept/decline.
+- Treasury: members donate spirit stones. Claim the (non-town) region you stand in, paid from treasury (100 × danger). Max 3 regions for now.
+- Controlled regions pay taxes into the treasury (10 × danger stones/hour). Members exploring their own territory have an 8% chance of a citizens' gift (stones or a pill).
+- Seclusion allowed at the sect's home with a ×1.2 bonus.
+- Alliances: leaders propose/accept/end. Map marks regions as yours (★), ally (◆), or another sect.
+- Leader must pass leadership before leaving; last member leaving disbands the sect and frees its land.
