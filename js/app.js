@@ -180,6 +180,7 @@
       renderHome(ch);
       loadWorld().then(tick).catch(() => {});
       loadDuels();
+      refreshDmBadge();
     } catch (e) {
       toast(friendly(e));
       show('screen-auth');
@@ -214,6 +215,26 @@
       gain += Math.max(0, (Math.min(t, new Date(state.seclusion_until).getTime()) - s) / 1000) * state.qi_rate * state.seclusion_mult;
     }
     return Math.min(state.qi_needed, state.qi + Math.floor(gain));
+  }
+
+  // Home shows only whether you are cultivating, with one button.
+  function renderHomeButton(full) {
+    const mode = modeNow();
+    const btn = $('#btn-home-cultivate');
+    const st = $('#home-state');
+    st.className = `slim-state m-${mode}`;
+    st.textContent = mode === 'seclusion' ? 'In seclusion' : mode === 'active' ? 'Cultivating' : 'Idle';
+    btn.dataset.mode = '';
+    btn.className = 'btn jade';
+    if (full && !(state.realm === 10 && state.stage === 10)) {
+      btn.textContent = 'Qi full · Advance ›'; btn.dataset.mode = 'advance'; btn.className = 'btn primary'; btn.disabled = false;
+    } else if (mode === 'seclusion') {
+      btn.textContent = `In seclusion · ${duration(secsLeft(state.seclusion_until))} left`; btn.disabled = true;
+    } else if (mode === 'active') {
+      btn.textContent = `Cultivating · ${duration(secsLeft(state.cultivate_until))} left · tap to reset`; btn.disabled = btn.dataset.busy === '1';
+    } else {
+      btn.textContent = 'Cultivate · 1 hour'; btn.disabled = btn.dataset.busy === '1';
+    }
   }
 
   function renderSession() {
@@ -269,9 +290,12 @@
     const qi = liveQi();
     const need = state.qi_needed;
     const full = qi >= need;
-    $('#home-qi').textContent = `${fmt(qi)} / ${fmt(need)}`;
-    $('#home-qi-bar').style.width = `${Math.min(100, (qi / need) * 100)}%`;
-    $('#home-qi-bar').classList.toggle('full', full);
+    ['home', 'char'].forEach((k) => {
+      $(`#${k}-qi`).textContent = `${fmt(qi)} / ${fmt(need)}`;
+      $(`#${k}-qi-bar`).style.width = `${Math.min(100, (qi / need) * 100)}%`;
+      $(`#${k}-qi-bar`).classList.toggle('full', full);
+    });
+    renderHomeButton(full);
     const mode = modeNow();
     const rate = mode === 'seclusion' ? state.qi_rate * state.seclusion_mult : mode === 'active' ? state.qi_rate : 0;
     $('#home-rate').textContent = rate ? `+${Number(rate).toLocaleString('en-US', { maximumFractionDigits: 2 })} qi/sec` : 'Not cultivating';
@@ -324,7 +348,7 @@
       tick();
       loadNotes();
       tickCount += 1;
-      if (tickCount % 20 === 0) loadDuels();
+      if (tickCount % 20 === 0) { loadDuels(); refreshDmBadge(); }
     }, 1000);
     loadNotes(true);
     if (!$('#screen-home').classList.contains('active')) show('screen-home');
@@ -349,14 +373,19 @@
   });
 
   // ---------- Cultivation sessions ----------
-  $('#btn-cultivate').addEventListener('click', async () => {
-    const b = $('#btn-cultivate');
+  async function startCultivating(b) {
     b.dataset.busy = '1'; b.disabled = true;
     const { data, error } = await sb.rpc('start_cultivating');
     b.dataset.busy = '';
     if (error) { toast(friendly(error)); tick(); return; }
     toast('You sit cross-legged and begin circulating your qi.');
     renderHome(data);
+  }
+  $('#btn-cultivate').addEventListener('click', () => startCultivating($('#btn-cultivate')));
+  $('#btn-home-cultivate').addEventListener('click', () => {
+    const b = $('#btn-home-cultivate');
+    if (b.dataset.mode === 'advance') return showPane('pane-character');
+    startCultivating(b);
   });
 
   // Two taps to start or end seclusion, so it isn't triggered by accident.
@@ -839,7 +868,7 @@
   function renderStoreAndMove(s, leader, officer) {
     // storehouse
     $('#store-note').textContent = s.storage.length
-      ? (officer ? 'Tribute from your territory. Hand items out to disciples.' : 'Tribute from your territory. The leader and elders hand these out.')
+      ? (officer ? 'Tribute from your territory. Each disciple can receive one item per day, and only items they are strong enough to use.' : 'Tribute from your territory. The leader and elders hand these out.')
       : 'Empty. Regions that produce materials send tribute here.';
     const ul = $('#sect-storage');
     ul.innerHTML = '';
@@ -848,7 +877,7 @@
       if (officer) {
         const sel = document.createElement('select');
         sel.className = 'mini-select';
-        sel.innerHTML = s.members.map((m) => `<option value="${m.id}">${esc(m.name)}${m.id === s.my_id ? ' (you)' : ''}</option>`).join('');
+        sel.innerHTML = s.members.map((m) => `<option value="${m.id}"${m.gift_today || m.realm < (it.min_realm || 1) ? ' disabled' : ''}>${esc(m.name)}${m.id === s.my_id ? ' (you)' : ''}${m.gift_today ? ' · got one today' : m.realm < (it.min_realm || 1) ? ' · too weak' : ''}</option>`).join('');
         btns.push(sel);
         btns.push(smallBtn('Give 1', 'ghost', async () => {
           const d = await sectCall('give_from_storage', { p_char: sel.value, p_item: it.id, p_qty: 1 }, `Gave 1 ${it.name}.`);
@@ -1058,6 +1087,267 @@
 
   $('#btn-look').addEventListener('click', loadOpponents);
 
+  // ---------- Chat (shared by Chat and Sect Chat) ----------
+  const fmtTime = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+  };
+
+  function makeChat({ logEl, inputEl, formEl, labelEl, channel, onLabel }) {
+    let lastId = 0;
+    let currentKey = null;
+    let timer = null;
+    function line(m, meId) {
+      const div = document.createElement('div');
+      const me = m.sender_id === meId;
+      div.className = `msg${me ? ' me' : ''}`;
+      const mark = m.rel === 'mine' ? '★ ' : m.rel === 'ally' ? '◆ ' : '';
+      div.innerHTML = `<div class="m-head"><span class="m-name r-${m.rel || 'none'}"></span><span class="m-meta"></span></div><div class="m-body"></div>`;
+      div.querySelector('.m-name').textContent = `${mark}${m.sender_name || ''}`;
+      div.querySelector('.m-meta').textContent = `${m.sender_realm ? REALMS[m.sender_realm - 1].split(' ')[0] + ' · ' : ''}${fmtTime(m.created_at)}`;
+      div.querySelector('.m-body').textContent = m.body;
+      return div;
+    }
+    async function poll(reset) {
+      const ch = channel();
+      if (!ch) return;
+      if (reset) { lastId = 0; logEl.innerHTML = ''; }
+      const { data, error } = await sb.rpc('get_chat', { p_channel: ch, p_after: lastId });
+      if (error || !data) return;
+      const key = `${ch}:${data.label}`;
+      if (currentKey && key !== currentKey && !reset) { currentKey = key; return poll(true); } // moved region etc.
+      currentKey = key;
+      if (labelEl) labelEl.textContent = data.label || '';
+      if (onLabel) onLabel(data);
+      const near = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
+      data.messages.forEach((m) => { logEl.appendChild(line(m, data.me)); lastId = Math.max(lastId, m.id); });
+      if (reset && !data.messages.length) logEl.innerHTML = '<p class="muted center small-text empty-chat">No messages yet. Say hello.</p>';
+      else if (data.messages.length) { const e = logEl.querySelector('.empty-chat'); if (e) e.remove(); }
+      if (reset || near) logEl.scrollTop = logEl.scrollHeight;
+    }
+    formEl.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const body = inputEl.value.trim();
+      if (!body) return;
+      const { error } = await sb.rpc('send_chat', { p_channel: channel(), p_body: body });
+      if (error) return toast(friendly(error));
+      inputEl.value = '';
+      poll(false);
+    });
+    return {
+      start() { currentKey = null; poll(true); clearInterval(timer); timer = setInterval(() => poll(false), 4000); },
+      stop() { clearInterval(timer); timer = null; },
+      switchTo() { currentKey = null; poll(true); }
+    };
+  }
+
+  let chatChannel = store.get('chat_channel') || 'region';
+  const chat = makeChat({
+    logEl: $('#chat-log'), inputEl: $('#chat-input'), formEl: $('#chat-send'), labelEl: $('#chat-label'),
+    channel: () => chatChannel
+  });
+  function markChatTabs() {
+    document.querySelectorAll('#chat-tabs .chip').forEach((b) => b.classList.toggle('active', b.dataset.ch === chatChannel));
+  }
+  document.querySelectorAll('#chat-tabs .chip').forEach((b) => b.addEventListener('click', () => {
+    chatChannel = b.dataset.ch;
+    store.set('chat_channel', chatChannel);
+    markChatTabs();
+    chat.switchTo();
+  }));
+
+  const sectChat = makeChat({
+    logEl: $('#schat-log'), inputEl: $('#schat-input'), formEl: $('#schat-send'), labelEl: $('#schat-label'),
+    channel: () => (state && state.sect ? 'sect' : null)
+  });
+  function startSectChat() {
+    const has = !!(state && state.sect);
+    $('#schat-none').hidden = has;
+    $('#schat-send').hidden = !has;
+    $('#schat-log').hidden = !has;
+    $('#schat-label').textContent = has ? state.sect.name : 'Sect chat';
+    if (has) sectChat.start();
+  }
+
+  // ---------- Direct messages ----------
+  let dmOther = null;
+  let dmLast = 0;
+  let dmTimer = null;
+
+  async function loadInbox() {
+    $('#dm-inbox').hidden = false;
+    $('#dm-thread').hidden = true;
+    $('#dm-back').textContent = '‹ Character';
+    dmOther = null;
+    clearInterval(dmTimer);
+    const { data, error } = await sb.rpc('dm_conversations');
+    if (error) return toast(friendly(error));
+    const ul = $('#dm-list');
+    ul.innerHTML = '';
+    $('#dm-empty').hidden = data.length > 0;
+    data.forEach((c) => {
+      const li = personRow(`<strong></strong><span class="muted small-text last"></span>`,
+        [smallBtn(c.unread ? `Open · ${c.unread} new` : 'Open', c.unread ? 'primary' : 'ghost', () => openThread(c.id))]);
+      li.querySelector('strong').textContent = c.name;
+      li.querySelector('.last').textContent = c.last || '';
+      ul.appendChild(li);
+    });
+    refreshDmBadge();
+  }
+
+  function dmLine(m, meId) {
+    const div = document.createElement('div');
+    div.className = `msg${m.sender_id === meId ? ' me' : ''}`;
+    div.innerHTML = '<div class="m-head"><span class="m-meta"></span></div><div class="m-body"></div>';
+    div.querySelector('.m-meta').textContent = fmtTime(m.created_at);
+    div.querySelector('.m-body').textContent = m.body;
+    return div;
+  }
+
+  async function pollThread(reset) {
+    if (!dmOther) return;
+    if (reset) { dmLast = 0; $('#dm-log').innerHTML = ''; }
+    const { data, error } = await sb.rpc('get_dm', { p_other: dmOther, p_after: dmLast });
+    if (error) return toast(friendly(error));
+    $('#dm-with').textContent = `${data.other.name} · ${REALMS[data.other.realm - 1]} ${data.other.stage}`;
+    const log = $('#dm-log');
+    data.messages.forEach((m) => { log.appendChild(dmLine(m, data.me)); dmLast = Math.max(dmLast, m.id); });
+    if (reset && !data.messages.length) log.innerHTML = '<p class="muted center small-text empty-chat">Start the conversation.</p>';
+    else if (data.messages.length) { const e = log.querySelector('.empty-chat'); if (e) e.remove(); }
+    if (data.messages.length || reset) log.scrollTop = log.scrollHeight;
+  }
+
+  function openThread(id) {
+    dmOther = id;
+    $('#dm-inbox').hidden = true;
+    $('#dm-thread').hidden = false;
+    $('#dm-back').textContent = '‹ Messages';
+    pollThread(true).then(refreshDmBadge);
+    clearInterval(dmTimer);
+    dmTimer = setInterval(() => pollThread(false), 4000);
+  }
+
+  $('#dm-back').addEventListener('click', () => {
+    if (dmOther) loadInbox(); else showPane('pane-character');
+  });
+
+  $('#dm-new').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const name = $('#dm-to').value.trim();
+    if (!name) return;
+    // look the character up by name (not case-sensitive)
+    const { data, error } = await sb.from('characters').select('id,name').ilike('name', name).limit(1);
+    if (error || !data || !data.length) return toast(`No cultivator named ${name}.`);
+    if (state && data[0].id === state.id) return toast('You cannot message yourself.');
+    $('#dm-to').value = '';
+    openThread(data[0].id);
+  });
+
+  $('#dm-send').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const body = $('#dm-input').value.trim();
+    if (!body || !dmOther) return;
+    const { error } = await sb.rpc('send_dm', { p_to: dmOther, p_body: body });
+    if (error) return toast(friendly(error));
+    $('#dm-input').value = '';
+    pollThread(false);
+  });
+
+  async function refreshDmBadge() {
+    const { data } = await sb.rpc('dm_unread');
+    const n = data || 0;
+    $('#hub-dms').hidden = !n;
+    $('#hub-dms').textContent = n;
+    $('#tab-dm-dot').hidden = !n;
+  }
+
+  // ---------- Trade (auction house) ----------
+  let ahTab = 'browse';
+  let ahData = null;
+
+  async function loadAuctions() {
+    const { data, error } = await sb.rpc('list_auctions');
+    if (error) return toast(friendly(error));
+    ahData = data;
+    renderAuctions();
+  }
+
+  function aRow(a) {
+    const left = secsLeft(a.ends_at);
+    const price = a.current_bid ? `Top bid ${fmt(a.current_bid)} · ${a.bids} bid${a.bids === 1 ? '' : 's'}` : `Starts at ${fmt(a.start_price)} · no bids`;
+    const tooLow = state && state.realm < a.min_realm;
+    const li = personRow(`<strong></strong>
+      <div class="tags"><span class="rarity r-${a.rarity}">${a.rarity}</span>${a.min_realm > 1 ? `<span class="req${tooLow ? ' bad' : ''}">Needs realm ${a.min_realm}</span>` : ''}${a.leading ? '<span class="lead">You lead</span>' : ''}</div>
+      <span class="muted small-text">${price} · ends in ${duration(left)}${a.mine ? '' : ` · by ${esc(a.seller)}`}</span>`, []);
+    li.querySelector('strong').textContent = `${a.name} ×${a.qty}`;
+    return li;
+  }
+
+  function renderAuctions() {
+    if (!ahData) return;
+    document.querySelectorAll('#ah-tabs .chip').forEach((b) => b.classList.toggle('active', b.dataset.ah === ahTab));
+    $('#ah-note').textContent = `Auctions run ${ahData.hours} hours. The highest bid wins. The auction house keeps ${ahData.fee_pct}% of the sale. There is no direct trading.`;
+    const ul = $('#ah-list');
+    ul.innerHTML = '';
+    $('#ah-sell').hidden = ahTab !== 'sell';
+    ul.hidden = ahTab === 'sell';
+    if (ahTab === 'sell') return fillSellForm();
+    const rows = ahTab === 'browse' ? ahData.open : ahData.mine;
+    if (!rows.length) ul.innerHTML = `<li class="empty">${ahTab === 'browse' ? 'Nothing for sale right now.' : 'You have no auctions running.'}</li>`;
+    rows.forEach((a) => {
+      const li = aRow(a);
+      const box = document.createElement('div');
+      box.className = 'p-actions';
+      if (a.mine) {
+        if (!a.bids) box.appendChild(smallBtn('Cancel', 'ghost', function () {
+          armed(this, 'Confirm', async () => { const d = await sectCall('cancel_auction', { p_auction: a.id }, 'Auction cancelled. The item is back in your bag.'); if (d) { ahData = d; renderAuctions(); } });
+        }));
+      } else {
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.min = String(a.min_bid); inp.value = String(a.min_bid); inp.inputMode = 'numeric'; inp.className = 'bet-input';
+        box.appendChild(inp);
+        box.appendChild(smallBtn(a.leading ? 'Raise' : 'Bid', 'primary', async () => {
+          const amount = parseInt(inp.value, 10);
+          const d = await sectCall('place_bid', { p_auction: a.id, p_amount: amount }, `You bid ${fmt(amount)} spirit stones.`);
+          if (d) { ahData = d; renderAuctions(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+        }));
+      }
+      li.appendChild(box);
+      ul.appendChild(li);
+    });
+  }
+
+  async function fillSellForm() {
+    const { data } = await sb.from('inventory').select('item_id,qty').eq('character_id', state.id).gt('qty', 0);
+    if (!itemCatalog) {
+      const r = await sb.from('items').select('*');
+      itemCatalog = Object.fromEntries((r.data || []).map((i) => [i.id, i]));
+    }
+    const sel = $('#ah-item');
+    sel.innerHTML = (data || []).length
+      ? data.map((r) => `<option value="${r.item_id}" data-max="${r.qty}">${esc(itemCatalog[r.item_id] ? itemCatalog[r.item_id].name : r.item_id)} (you have ${r.qty})</option>`).join('')
+      : '<option value="">Your bag is empty</option>';
+  }
+
+  document.querySelectorAll('#ah-tabs .chip').forEach((b) => b.addEventListener('click', () => { ahTab = b.dataset.ah; renderAuctions(); }));
+
+  $('#ah-sell').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const f = ev.target;
+    setError(f, '');
+    const item = $('#ah-item').value;
+    const qty = parseInt($('#ah-qty').value, 10);
+    const price = parseInt($('#ah-price').value, 10);
+    if (!item) return setError(f, 'You have nothing to sell.');
+    const { data, error } = await sb.rpc('create_auction', { p_item: item, p_qty: qty, p_start: price });
+    if (error) return setError(f, friendly(error));
+    toast('Your item is up for auction for 24 hours.');
+    ahData = data;
+    ahTab = 'mine';
+    renderAuctions();
+  });
+
   // ---------- Tabs ----------
   // Sub-pages inside the World tab (Travel, Cultivators nearby).
   function showSub(sub) {
@@ -1068,6 +1358,9 @@
   }
 
   function showPane(id, sub) {
+    chat.stop();
+    sectChat.stop();
+    clearInterval(dmTimer);
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
     window.scrollTo(0, 0);
@@ -1080,6 +1373,10 @@
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
+    if (id === 'pane-trade') loadAuctions();
+    if (id === 'pane-messages') loadInbox();
+    if (id === 'pane-chat') { markChatTabs(); chat.start(); }
+    if (id === 'pane-sectchat') startSectChat();
   }
   document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.go, b.dataset.sub)));
   document.querySelectorAll('#world-main [data-sub]').forEach((b) => b.addEventListener('click', () => showSub(b.dataset.sub)));

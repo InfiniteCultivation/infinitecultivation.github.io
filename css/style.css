@@ -418,3 +418,50 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .sub[hidden], #world-main[hidden] { display: none; }
 .back { appearance: none; border: 0; background: none; color: var(--gold-2); font: inherit; font-weight: 600; padding: 4px 2px 12px; cursor: pointer; }
 #pane-character .orbs.small { margin: 12px 0 4px; }
+
+/* Slim home card */
+.slim { padding: 16px 18px; }
+.slim-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.slim h2 { font-size: 1.35rem; }
+.slim .realm { margin: 4px 0 12px; }
+.slim .btn { margin-top: 12px; }
+.slim-state { font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 99px; white-space: nowrap; background: rgba(255,255,255,0.06); color: var(--muted); }
+.slim-state.m-active { color: #06231a; background: var(--jade); }
+.slim-state.m-seclusion { color: #120a26; background: #b8a3f0; }
+
+/* tab bar dot */
+.tabbar-btn { position: relative; }
+.tab-dot { position: absolute; top: 4px; right: 22%; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); }
+.tab-dot[hidden] { display: none; }
+
+/* Chat */
+.chat-card { display: flex; flex-direction: column; height: calc(100dvh - 200px); min-height: 360px; padding-bottom: 12px; }
+.chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 2px; margin: 6px 0 10px; }
+.msg { max-width: 82%; align-self: flex-start; background: rgba(0,0,0,0.28); border-radius: 12px 12px 12px 4px; padding: 7px 10px; }
+.msg.me { align-self: flex-end; background: rgba(214,178,94,0.16); border-radius: 12px 12px 4px 12px; }
+.m-head { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+.m-name { font-size: .78rem; font-weight: 700; color: var(--text); }
+.m-name.r-mine { color: var(--gold-2); } .m-name.r-ally { color: #9fd0ff; }
+.m-meta { font-size: .66rem; color: var(--muted); white-space: nowrap; }
+.m-body { font-size: .9rem; line-height: 1.4; white-space: pre-wrap; word-break: break-word; margin-top: 2px; }
+.chat-send { display: flex; gap: 8px; }
+.chat-send input { flex: 1; }
+.chat-send[hidden], .chat-log[hidden] { display: none; }
+#chat-tabs { margin-bottom: 4px; }
+#chat-label, #schat-label { margin: 2px 0 0; }
+
+/* Messages */
+.new-dm { display: flex; gap: 8px; margin-bottom: 12px; }
+.new-dm input { flex: 1; }
+.convs .last { display: block; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dm-inbox[hidden], #dm-thread[hidden] { display: none; }
+
+/* Trade */
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#ah-item { font: inherit; font-size: 16px; color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px 12px; }
+#ah-list[hidden] { display: none; }
+.rarity.r-uncommon { color: var(--jade); } .rarity.r-rare { color: #6fa8ff; } .rarity.r-legendary { color: var(--gold-2); }
+.req { font-size: .7rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,0.06); color: var(--muted); }
+.req.bad { color: var(--danger); background: rgba(255,122,107,0.12); }
+.lead { font-size: .7rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; color: #06231a; background: var(--jade); }
+#pane-trade .back, #pane-messages .back { display: block; }

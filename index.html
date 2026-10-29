@@ -112,13 +112,50 @@
 
       <!-- Home -->
       <div class="pane active" id="pane-cultivate">
-        <div class="card sheet" id="home-card">
-          <h2 id="home-name"></h2>
-          <p class="realm" id="home-realm"></p>
-
+        <div class="card sheet slim">
+          <div class="slim-top">
+            <div>
+              <h2 id="home-name"></h2>
+              <p class="realm" id="home-realm"></p>
+            </div>
+            <span class="slim-state" id="home-state"></span>
+          </div>
           <div class="meter">
             <div class="meter-label"><span>Qi</span><span id="home-qi"></span></div>
             <div class="meter-track"><div class="meter-fill" id="home-qi-bar"></div></div>
+          </div>
+          <button class="btn jade" id="btn-home-cultivate">Cultivate · 1 hour</button>
+        </div>
+
+        <div class="hub">
+          <button class="hub-btn" data-go="pane-character"><span class="h-ico">人</span>Character</button>
+          <button class="hub-btn" data-go="pane-world"><span class="h-ico">界</span>Explore</button>
+          <button class="hub-btn" data-go="pane-trade"><span class="h-ico">市</span>Trade</button>
+          <button class="hub-btn" data-go="pane-world" data-sub="sub-nearby"><span class="h-ico">戰</span>Nearby<span class="hub-badge" id="hub-duels" hidden></span></button>
+          <button class="hub-btn" data-go="pane-sect"><span class="h-ico">宗</span>Sect</button>
+          <button class="hub-btn" data-go="pane-bag"><span class="h-ico">囊</span>Bag</button>
+        </div>
+
+        <details class="card notes" id="notes">
+          <summary>
+            <span>Notifications</span>
+            <span class="badge" id="notes-badge" hidden></span>
+            <span class="chev">▾</span>
+          </summary>
+          <ul class="notes-list" id="notes-list"></ul>
+          <p class="muted center small-text" id="notes-empty" hidden>Nothing new.</p>
+        </details>
+      </div>
+
+      <!-- Character -->
+      <div class="pane" id="pane-character">
+        <div class="card sheet" id="home-card">
+          <h2 id="char-name"></h2>
+          <p class="realm" id="char-realm"></p>
+
+          <div class="meter">
+            <div class="meter-label"><span>Qi</span><span id="char-qi"></span></div>
+            <div class="meter-track"><div class="meter-fill" id="char-qi-bar"></div></div>
             <div class="meter-sub"><span id="home-rate"></span><span id="home-eta"></span></div>
           </div>
 
@@ -148,35 +185,7 @@
           <button class="qtile link" data-go="pane-world"><span class="q-label">Location</span><span class="q-val loc" id="home-loc"></span></button>
         </div>
 
-        <div class="hub">
-          <button class="hub-btn" data-go="pane-character"><span class="h-ico">人</span>Character</button>
-          <button class="hub-btn" data-go="pane-world"><span class="h-ico">界</span>Explore</button>
-          <button class="hub-btn" data-go="pane-world" data-sub="sub-travel"><span class="h-ico">途</span>Travel</button>
-          <button class="hub-btn" data-go="pane-world" data-sub="sub-nearby"><span class="h-ico">戰</span>Nearby<span class="hub-badge" id="hub-duels" hidden></span></button>
-          <button class="hub-btn" data-go="pane-sect"><span class="h-ico">宗</span>Sect</button>
-          <button class="hub-btn" data-go="pane-bag"><span class="h-ico">囊</span>Bag</button>
-        </div>
-
-        <details class="card notes" id="notes">
-          <summary>
-            <span>Notifications</span>
-            <span class="badge" id="notes-badge" hidden></span>
-            <span class="chev">▾</span>
-          </summary>
-          <ul class="notes-list" id="notes-list"></ul>
-          <p class="muted center small-text" id="notes-empty" hidden>Nothing new.</p>
-        </details>
-
-        <div class="card soon">
-          <p class="muted center">Tap Cultivate each hour while you play. Before you log off, rest in a town and enter seclusion.</p>
-        </div>
-      </div>
-
-      <!-- Character -->
-      <div class="pane" id="pane-character">
-        <div class="card sheet">
-          <h2 id="char-name"></h2>
-          <p class="realm" id="char-realm"></p>
+        <div class="card">
           <div class="orbs small" id="home-orbs"></div>
           <div class="stats">
             <div class="stat"><span class="stat-label">Spirit Root</span><span class="stat-value" id="home-root"></span></div>
@@ -206,8 +215,94 @@
           <button class="hub-btn soon-btn" disabled><span class="h-ico">技</span>Skills<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">法</span>Arts<small>Coming soon</small></button>
           <button class="hub-btn soon-btn" disabled><span class="h-ico">道</span>Cultivation<br>Styles<small>Coming soon</small></button>
-          <button class="hub-btn" data-go="pane-bag"><span class="h-ico">囊</span>Bag</button>
-          <button class="hub-btn" data-go="pane-sect"><span class="h-ico">宗</span>Sect</button>
+          <button class="hub-btn soon-btn" disabled><span class="h-ico">昇</span>Upgrade<small>Coming soon</small></button>
+          <button class="hub-btn" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
+        </div>
+
+        <div class="card soon">
+          <p class="muted center">Tap Cultivate each hour while you play. Before you log off, rest in a town and enter seclusion.</p>
+        </div>
+      </div>
+
+      <!-- Trade (auction house) -->
+      <div class="pane" id="pane-trade">
+        <button class="back" data-go="pane-cultivate">‹ Home</button>
+        <div class="card">
+          <h4 class="card-title">Auction House</h4>
+          <p class="muted small-text" id="ah-note"></p>
+          <div class="chips" id="ah-tabs">
+            <button class="chip active" data-ah="browse">Browse</button>
+            <button class="chip" data-ah="mine">My auctions</button>
+            <button class="chip" data-ah="sell">Sell</button>
+          </div>
+          <ul class="people" id="ah-list"></ul>
+          <form class="form" id="ah-sell" hidden>
+            <label>Item
+              <select id="ah-item"></select>
+            </label>
+            <div class="row2">
+              <label>Quantity <input id="ah-qty" type="number" min="1" value="1" inputmode="numeric"></label>
+              <label>Starting bid <input id="ah-price" type="number" min="1" value="10" inputmode="numeric"></label>
+            </div>
+            <p class="error" hidden></p>
+            <button class="btn primary" type="submit">List for 24 hours</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Direct messages -->
+      <div class="pane" id="pane-messages">
+        <button class="back" id="dm-back">‹ Character</button>
+        <div id="dm-inbox">
+          <div class="card">
+            <h4 class="card-title">Messages</h4>
+            <form class="new-dm" id="dm-new">
+              <input id="dm-to" placeholder="Character name" autocomplete="off" autocapitalize="words">
+              <button class="btn ghost small" type="submit">Open</button>
+            </form>
+            <ul class="people convs" id="dm-list"></ul>
+            <p class="muted center small-text" id="dm-empty" hidden>No conversations yet. Type a character's name above to start one.</p>
+          </div>
+        </div>
+        <div id="dm-thread" hidden>
+          <div class="card chat-card">
+            <h4 class="card-title" id="dm-with"></h4>
+            <div class="chat-log" id="dm-log"></div>
+            <form class="chat-send" id="dm-send">
+              <input id="dm-input" maxlength="500" placeholder="Write a message" autocomplete="off">
+              <button class="btn primary small" type="submit">Send</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat -->
+      <div class="pane" id="pane-chat">
+        <div class="card chat-card">
+          <div class="chips" id="chat-tabs">
+            <button class="chip" data-ch="region">Region</button>
+            <button class="chip" data-ch="continent">Continent</button>
+            <button class="chip" data-ch="global">Global</button>
+          </div>
+          <p class="eyebrow" id="chat-label"></p>
+          <div class="chat-log" id="chat-log"></div>
+          <form class="chat-send" id="chat-send">
+            <input id="chat-input" maxlength="300" placeholder="Say something" autocomplete="off">
+            <button class="btn primary small" type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Sect chat -->
+      <div class="pane" id="pane-sectchat">
+        <div class="card chat-card">
+          <p class="eyebrow" id="schat-label">Sect chat</p>
+          <div class="chat-log" id="schat-log"></div>
+          <form class="chat-send" id="schat-send">
+            <input id="schat-input" maxlength="300" placeholder="Speak to your sect" autocomplete="off">
+            <button class="btn primary small" type="submit">Send</button>
+          </form>
+          <p class="muted center small-text" id="schat-none" hidden>Join a sect to use sect chat.</p>
         </div>
       </div>
 
@@ -362,10 +457,10 @@
 
   <nav class="tabbar" id="tabbar">
     <button class="tabbar-btn active" data-pane="pane-cultivate"><span class="ico">修</span>Home</button>
-    <button class="tabbar-btn" data-pane="pane-character"><span class="ico">人</span>Character</button>
+    <button class="tabbar-btn" data-pane="pane-character"><span class="ico">人</span>Character<span class="tab-dot" id="tab-dm-dot" hidden></span></button>
     <button class="tabbar-btn" data-pane="pane-world"><span class="ico">界</span>World</button>
-    <button class="tabbar-btn" data-pane="pane-sect"><span class="ico">宗</span>Sect</button>
-    <button class="tabbar-btn" data-pane="pane-bag"><span class="ico">囊</span>Bag</button>
+    <button class="tabbar-btn" data-pane="pane-chat"><span class="ico">言</span>Chat</button>
+    <button class="tabbar-btn" data-pane="pane-sectchat"><span class="ico">宗</span>Sect Chat</button>
   </nav>
 
   <div id="toast" role="status" hidden></div>

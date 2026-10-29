@@ -158,3 +158,12 @@ Decisions agreed with the owner, to build into later milestones.
 - Character screen: overview of the character, with buttons into Stats, Skills, Arts, Cultivation Styles (placeholders until built).
 - World: region + Explore, with buttons into Travel and Cultivators nearby.
 - Bottom bar: Home, Character, World, Sect, Bag.
+
+## Layout v2, chat, messages, trade (built)
+- Home: only name, realm/stage, qi bar and one Cultivate button (becomes "Advance ›" to Character when qi is full). Hub: Character, Explore, Trade, Nearby, Sect, Bag. Notifications below.
+- Character: full cultivation details (session, seclusion, Advance), spirit stones/stamina/location, root, toxicity, effects. Hub: Stats, Skills, Arts, Cultivation Styles, Upgrade (coming soon), Messages.
+- Bottom bar: Home, Character, World, Chat, Sect Chat.
+- Chat: Region / Continent / Global channels (based on where you are); remembers last channel. Sect Chat is private to the sect. 2-second rate limit, 300 characters.
+- Messages: direct messages to any character by name; unread badges.
+- Trade: auction house only (no direct trading, to stop alt-account feeding). 24-hour auctions, highest bid wins, each bid ≥5% higher, bids held in escrow and refunded when outbid, 5% fee on sales, up to 10 listings, cancel only before any bids.
+- Items have a minimum realm to use. Sect storehouse: one item per person per day, only to members strong enough to use it.
