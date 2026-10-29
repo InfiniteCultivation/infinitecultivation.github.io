@@ -596,3 +596,8 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .npc-tag { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #c9d3e6; background: rgba(150,170,210,0.14); }
 .gain.tmp { font-size: .68rem; padding: 2px 8px; }
 .donate-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; } .donate-row select { flex: 1; min-width: 0; }
+.alert-banner { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; text-align: left; font: inherit; color: var(--text);
+  background: linear-gradient(90deg, rgba(255,122,107,0.18), rgba(214,178,94,0.12)); border: 1px solid rgba(255,122,107,0.5); cursor: pointer; animation: pulse 2s ease-in-out infinite; }
+.alert-banner .a-ico { font-size: 1.5rem; }
+.alert-banner small { display: block; color: var(--muted); font-size: .75rem; margin-top: 2px; }
+.tabbar-btn { position: relative; }

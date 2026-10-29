@@ -142,6 +142,7 @@
     badge.hidden = unread === 0;
     badge.textContent = unread > 9 ? '9+' : unread;
     $('#notes').classList.toggle('has-new', unread > 0);
+    $('#tab-home-dot').hidden = unread === 0;
     $('#notes-empty').hidden = rows.length > 0;
     const ul = $('#notes-list');
     ul.innerHTML = '';
@@ -160,6 +161,7 @@
   async function markNotesRead() {
     await sb.rpc('mark_notifications_read');
     $('#notes-badge').hidden = true;
+    $('#tab-home-dot').hidden = true;
     $('#notes').classList.remove('has-new');
   }
 
@@ -385,7 +387,8 @@
       tick();
       loadNotes();
       tickCount += 1;
-      if (tickCount % 20 === 0) { loadDuels(); refreshDmBadge(); checkBattle(); }
+      if (tickCount % 20 === 0) { loadDuels(); refreshDmBadge(); }
+      if (tickCount % (duelWaiting ? 4 : 20) === 0) checkBattle();
     }, 1000);
     loadNotes(true);
     if (!$('#screen-home').classList.contains('active')) show('screen-home');
@@ -1231,6 +1234,14 @@
     const hb = $('#hub-duels');
     hb.hidden = d.incoming.length === 0;
     hb.textContent = d.incoming.length;
+    const al = $('#home-alert');
+    if (d.incoming.length) {
+      const x = d.incoming[0];
+      al.hidden = false;
+      al.innerHTML = `<span class="a-ico">⚔</span><span><strong>${esc(x.name)} challenges you to a duel</strong><small>${x.bet ? `${fmt(x.bet)} stones each · ` : ''}expires in ${duration(secsLeft(x.expires_at))} · tap to answer</small></span>`;
+      al.onclick = () => showPane('pane-world');
+    } else al.hidden = true;
+    duelWaiting = d.outgoing.length > 0;
     d.incoming.forEach((x) => {
       ul.appendChild(personRow(`<strong>${esc(x.name)} challenges you</strong>
         <span class="muted small-text">${REALMS[x.realm - 1]} ${x.stage} · ${x.bet ? `${fmt(x.bet)} stones each` : 'no bet'} · <span class="odds o-${x.odds.toLowerCase()}">${x.odds}</span></span>`, [
@@ -2150,6 +2161,7 @@
   }
 
   // ---------- Battle ----------
+  let duelWaiting = false;
   let bv = null;           // current battle view from the server
   let bPoll = null;         // polling while waiting on the opponent
   let bTick = null;         // countdown
