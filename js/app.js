@@ -1789,8 +1789,10 @@
     $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
     $('#bt-me').innerHTML = fighterHtml(me, true);
     $('#bt-foe').innerHTML = fighterHtml(foe, false);
-    $('#bt-auto').checked = !!v.auto;
-    $('#bt-auto').disabled = v.status !== 'active';
+    const ab = $('#bt-auto');
+    ab.textContent = v.auto ? 'Auto: On — tap to take control' : 'Auto: Off';
+    ab.classList.toggle('on', !!v.auto);
+    ab.hidden = v.status !== 'active';
     const active = v.status === 'active';
 
     // the first-turn choice when a beast jumps you
@@ -1852,10 +1854,10 @@
       grid.appendChild(pass);
     }
 
-    // log, newest at the bottom
+    // log, newest on top
     const log = $('#bt-log');
-    log.innerHTML = v.log.map((x) => `<li class="l-${x.t} ${x.s === v.me ? 'mine' : 'theirs'}">${esc(x.text)}</li>`).join('');
-    log.scrollTop = log.scrollHeight;
+    log.innerHTML = v.log.slice().reverse().map((x) => `<li class="l-${x.t} ${x.s === v.me ? 'mine' : 'theirs'}">${esc(x.text)}</li>`).join('');
+    log.scrollTop = 0;
 
     // result
     const res = $('#bt-result');
@@ -1909,7 +1911,7 @@
     };
   }
 
-  $('#bt-auto').addEventListener('change', (e) => { if (bv) battleCall('battle_auto', { p_id: bv.id, p_on: e.target.checked }); });
+  $('#bt-auto').addEventListener('click', () => { if (bv) battleCall('battle_auto', { p_id: bv.id, p_on: !bv.auto }); });
   $('#bt-fight').addEventListener('click', () => { if (bv) { bChoiceSeen[bv.id] = true; renderBattle(bv); } });
   $('#bt-autofight').addEventListener('click', () => { if (bv) { bChoiceSeen[bv.id] = true; battleCall('battle_auto', { p_id: bv.id, p_on: true }); } });
 

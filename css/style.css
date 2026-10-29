@@ -561,3 +561,6 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .b-log li.l-end { color: var(--gold-2); font-weight: 700; }
 .b-log li.l-timeout, .b-log li.l-start { color: var(--muted); font-style: italic; }
 #btn-hunt { margin-top: 8px; width: 100%; }
+.btn.auto-btn { display: block; width: 100%; margin-top: 12px; }
+.auto-btn.on { color: var(--jade); border-color: rgba(95,196,160,0.6); background: rgba(95,196,160,0.1); }
+.card-title small { font-family: 'Inter', system-ui, sans-serif; font-size: .7rem; font-weight: 400; letter-spacing: 0; }
