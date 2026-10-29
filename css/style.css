@@ -584,3 +584,12 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 #pf-change-box { align-items: center; gap: 8px; }
 .bag li.rar-epic { border-left-color: #b77cff; }
 .battle-only { align-self: center; white-space: nowrap; }
+
+/* ---------- Styles & upgrades ---------- */
+.style-card .style-val { margin: 4px 0 8px; font-size: 1rem; }
+.style-card .btn { margin-top: 4px; }
+.up-list li { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+.pips { display: flex; gap: 5px; margin: 6px 0; }
+.pip { width: 18px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); }
+.pip.on { background: linear-gradient(90deg, var(--gold), var(--gold-2)); }
+.up-now { color: #9fe3c8; display: block; }

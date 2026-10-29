@@ -217,8 +217,8 @@
           <button class="hub-btn" data-go="pane-arts"><span class="h-ico">法</span>Arts</button>
           <button class="hub-btn" data-go="pane-class"><span class="h-ico">武</span>Class</button>
           <button class="hub-btn" data-go="pane-profession"><span class="h-ico">藝</span>Profession</button>
-          <button class="hub-btn soon-btn" disabled><span class="h-ico">道</span>Cultivation<br>Styles<small>Coming soon</small></button>
-          <button class="hub-btn soon-btn" disabled><span class="h-ico">昇</span>Upgrade<small>Coming soon</small></button>
+          <button class="hub-btn" data-go="pane-styles"><span class="h-ico">道</span>Cultivation<br>Styles</button>
+          <button class="hub-btn" data-go="pane-upgrade"><span class="h-ico">昇</span>Upgrade<span class="hub-badge gold" id="hub-up" hidden></span></button>
           <button class="hub-btn span2" data-go="pane-messages"><span class="h-ico">書</span>Messages<span class="hub-badge" id="hub-dms" hidden></span></button>
         </div>
 
@@ -292,6 +292,43 @@
           <p class="muted small-text st-help">Strikes deal damage, techniques heal or empower you, reactions answer enemy arts, and ultimates must charge for 4 turns. Arts grow stronger as you use them — and cost more energy.</p>
           <ul class="people" id="ar-list"></ul>
         </div>
+      </div>
+
+      <!-- Cultivation styles -->
+      <div class="pane" id="pane-styles">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div class="card">
+          <h4 class="card-title">Cultivation styles</h4>
+          <p class="muted small-text st-help">There are three paths of cultivation. They grow in different ways and strengthen different parts of you.</p>
+        </div>
+        <div class="card style-card">
+          <div class="prof-head"><span class="h-ico">魂</span><h4 class="card-title">Soul cultivation</h4></div>
+          <p class="style-val" id="sy-soul"></p>
+          <p class="small-text">Your realm and stage. Grows by gathering qi — cultivating, seclusion, pills — and breaking through. Every stage raises all stat caps, gives free stat points and one upgrade point.</p>
+          <button class="btn ghost small" data-go="pane-character">Cultivate</button>
+        </div>
+        <div class="card style-card">
+          <div class="prof-head"><span class="h-ico">體</span><h4 class="card-title">Body cultivation</h4></div>
+          <p class="style-val" id="sy-body"></p>
+          <p class="small-text">Grows while you train physical stats (Constitution, Endurance, Strength, Agility, Dexterity). Each level raises those stats' caps by 1% and makes training them faster.</p>
+          <button class="btn ghost small" data-go="pane-stats">Train in Stats</button>
+        </div>
+        <div class="card style-card">
+          <div class="prof-head"><span class="h-ico">心</span><h4 class="card-title">Mental cultivation</h4></div>
+          <p class="style-val" id="sy-mind"></p>
+          <p class="small-text">Grows while you train mental stats (Willpower, Fortitude, Intellect, Perception, Soul). Each level raises those stats' caps by 1% and makes training them faster.</p>
+          <button class="btn ghost small" data-go="pane-stats">Train in Stats</button>
+        </div>
+      </div>
+
+      <!-- Upgrades -->
+      <div class="pane" id="pane-upgrade">
+        <button class="back" data-go="pane-character">‹ Character</button>
+        <div class="card">
+          <div class="bag-head"><h4 class="card-title">Upgrades</h4><span class="lead" id="up-points"></span></div>
+          <p class="muted small-text st-help">You earn one upgrade point every time you advance a cultivation stage. Each rank costs one more point than the last. Choices are permanent.</p>
+        </div>
+        <ul class="people up-list" id="up-list"></ul>
       </div>
 
       <!-- Combat class -->

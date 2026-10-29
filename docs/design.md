@@ -248,3 +248,9 @@ Decisions agreed with the owner, to build into later milestones.
 - Array Master (Earth affinity): Spirit Gathering Array Flag (+15% cultivation 4h), Grand Qi Cyclone Array Disk (+30% 4h). Used from the Bag. Class art: Earthbound Array (weaken + defense).
 - Any item marked "battle" can now be used in fights (pills and talismans); the battle shows every one you carry.
 - Mining is part of Gatherer for now (ore comes from gathering).
+
+## Step 12: Cultivation Styles screen + Upgrades (built)
+- Styles screen explains Soul (realm/stage), Body and Mental cultivation, with current levels and links to cultivate/train.
+- Upgrade points: one per stage advanced (stage index − 1). Rank N of a node costs N points; 5 ranks each; permanent (reset items later).
+- Nodes: Flowing Meridians (+3% cultivation speed per rank, shown as a permanent effect), Iron Constitution (+5% max health), Boundless Sea of Qi (+5% max energy), Endless Vigor (+5 max stamina).
+- Later: longer seclusion / cultivation sessions, sect trees, Divine Realm point sources.

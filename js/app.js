@@ -503,7 +503,7 @@
     const html = live.map((e) => {
       const left = (new Date(e.ends_at).getTime() - now) / 1000;
       const pct = Number(e.pct);
-      return `<li class="${pct >= 0 ? 'up' : 'down'}"><span>${pct >= 0 ? '▲ +' : '▼ '}${pct}% cultivation</span><span class="muted">${esc(e.source)} · ${duration(left)}</span></li>`;
+      return `<li class="${pct >= 0 ? 'up' : 'down'}"><span>${pct >= 0 ? '▲ +' : '▼ '}${pct}% cultivation</span><span class="muted">${esc(e.source)} · ${left > 3.15e8 ? 'permanent' : duration(left)}</span></li>`;
     }).join('');
     if (ul.dataset.html !== html) { ul.innerHTML = html; ul.dataset.html = html; }
     const note = $('#tox-note');
@@ -1746,6 +1746,43 @@
     }));
   });
 
+  // ---------- Cultivation styles & upgrades ----------
+  async function loadStyles() {
+    const { data, error } = await sb.rpc('my_stats');
+    if (error) return toast(friendly(error));
+    $('#sy-soul').innerHTML = state ? `<strong>${REALMS[state.realm - 1]} · Stage ${state.stage}</strong> <span class="muted">(stage ${data.stage_index} of 100)</span>` : '';
+    $('#sy-body').innerHTML = `<strong>Level ${fmt(Math.floor(data.body_level))}</strong> <span class="muted">· physical caps +${Math.floor(data.body_level)}%</span>`;
+    $('#sy-mind').innerHTML = `<strong>Level ${fmt(Math.floor(data.mind_level))}</strong> <span class="muted">· mental caps +${Math.floor(data.mind_level)}%</span>`;
+  }
+  let upData = null;
+  async function loadUpgrades() {
+    const { data, error } = await sb.rpc('my_upgrades');
+    if (error) return toast(friendly(error));
+    upData = data;
+    renderUpgrades();
+  }
+  function renderUpgrades() {
+    const d = upData;
+    if (!d) return;
+    $('#up-points').textContent = `${d.points} point${d.points === 1 ? '' : 's'}`;
+    const hb = $('#hub-up');
+    hb.hidden = !d.points; hb.textContent = d.points;
+    const ul = $('#up-list');
+    ul.innerHTML = '';
+    d.nodes.forEach((n) => {
+      const pips = Array.from({ length: n.max }, (_, i) => `<span class="pip${i < n.rank ? ' on' : ''}"></span>`).join('');
+      const maxed = n.rank >= n.max;
+      const b = smallBtn(maxed ? 'Maxed' : `Rank ${n.rank + 1} · ${n.next_cost} pt${n.next_cost === 1 ? '' : 's'}`, 'primary', async () => {
+        const r = await sectCall('buy_upgrade', { p_node: n.id }, `${n.name} rank ${n.rank + 1}!`);
+        if (r) { upData = r; renderUpgrades(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      b.disabled = maxed || d.points < n.next_cost;
+      ul.appendChild(personRow(`<strong>${esc(n.name)}</strong><div class="pips">${pips}</div>
+        <span class="small-text up-now">Now: +${n.rank * n.per}${n.unit}${maxed ? '' : ` → +${(n.rank + 1) * n.per}${n.unit}`}</span>
+        <span class="muted small-text">${esc(n.description)}</span>`, [b]));
+    });
+  }
+
   // ---------- Combat class ----------
   const CLASSES = {
     swordsman: { name: 'Swordsman', ico: '劍', blurb: 'Fast martial strikes. Critical hits, bleeding wounds and deadly ripostes.' },
@@ -2200,6 +2237,9 @@
     if (id !== 'pane-battle') stopBattle();
     if (id === 'pane-arts') loadArts();
     if (id === 'pane-class') loadClass();
+    if (id === 'pane-styles') loadStyles();
+    if (id === 'pane-upgrade') loadUpgrades();
+    if (id === 'pane-character') sb.rpc('my_upgrades').then(({ data }) => { if (data) { upData = data; const hb = $('#hub-up'); hb.hidden = !data.points; hb.textContent = data.points; } });
     if (id === 'pane-profession') { $('#pf-result').hidden = true; loadProfession(); }
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
