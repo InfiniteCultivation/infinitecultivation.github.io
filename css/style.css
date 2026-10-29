@@ -621,3 +621,14 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .slot-tag.t-support { color: #a8e6cf; background: rgba(95,196,160,0.14); }
 .btn.heal-btn { color: #a8e6cf; border-color: rgba(95,196,160,0.45); }
 .hurt { color: #ff9f8f; }
+.home-quick { margin-bottom: 10px; }
+.home-quick + .home-quick { margin-bottom: 16px; }
+.q-val.hpv { color: #ff8a7a; } .q-val.env { color: #7fc3ff; }
+.q-val.loc { font-size: .82rem; line-height: 1.25; }
+button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.q-noti.has-new { border-color: rgba(255,122,107,0.6); }
+.q-noti.has-new .q-val { color: var(--danger); }
+.home-quick .qtile { min-width: 0; }
+.home-quick .q-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-val.loc { white-space: normal; }
+#travel-top { margin-bottom: 12px; }

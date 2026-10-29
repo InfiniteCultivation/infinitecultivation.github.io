@@ -143,6 +143,8 @@
     badge.textContent = unread > 9 ? '9+' : unread;
     $('#notes').classList.toggle('has-new', unread > 0);
     $('#tab-home-dot').hidden = unread === 0;
+    $('#hq-noti-val').textContent = `Noti: ${unread}`;
+    $('#hq-noti').classList.toggle('has-new', unread > 0);
     $('#notes-empty').hidden = rows.length > 0;
     const ul = $('#notes-list');
     ul.innerHTML = '';
@@ -158,10 +160,18 @@
     if ($('#notes').open && unread) markNotesRead();
   }
 
+  $('#hq-noti').addEventListener('click', () => {
+    const n = $('#notes');
+    n.open = true;
+    n.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    markNotesRead();
+  });
   async function markNotesRead() {
     await sb.rpc('mark_notifications_read');
     $('#notes-badge').hidden = true;
     $('#tab-home-dot').hidden = true;
+    $('#hq-noti-val').textContent = 'Noti: 0';
+    $('#hq-noti').classList.remove('has-new');
     $('#notes').classList.remove('has-new');
   }
 
@@ -360,6 +370,21 @@
     $('#home-stamina').textContent = `${liveStamina()} / ${state.stamina_max}`;
     renderTown();
     $('#home-loc').textContent = state.travel ? `→ ${state.travel.name}` : (state.region ? state.region.name : '');
+    // Home quick bar
+    const pl = state.pools || {};
+    $('#hq-hp').textContent = `${fmt(pl.hp ?? 0)} / ${fmt(pl.hp_max ?? 0)}`;
+    $('#hq-en').textContent = `${fmt(pl.energy ?? 0)} / ${fmt(pl.energy_max ?? 0)}`;
+    $('#hq-st').textContent = `${liveStamina()} / ${state.stamina_max}`;
+    $('#hq-stones').textContent = fmt(state.spirit_stones);
+    let travelText = '';
+    if (state.travel) {
+      const left = (new Date(state.travel.arrive_at).getTime() - serverNow()) / 1000;
+      travelText = left > 0 ? `Travelling to ${state.travel.name} · arrives in ${duration(left)}` : `Arriving at ${state.travel.name}…`;
+    }
+    $('#hq-loc').textContent = state.travel ? `→ ${state.travel.name}` : (state.region ? state.region.name : '');
+    const tt = $('#travel-top');
+    tt.hidden = !state.travel;
+    if (state.travel) tt.textContent = travelText;
     if ($('#pane-world').classList.contains('active')) renderWorld();
   }
 
