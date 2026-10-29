@@ -276,3 +276,4 @@ Decisions agreed with the owner, to build into later milestones.
 - Player sects can't claim NPC land directly. A sect leader or elder challenges the guardian (World › Cultivators nearby). Winning frees the region for 3 days; any sect may claim it in that window, otherwise the NPC sect's hold returns.
 - Demonic territory: ambush chance while exploring is 50% of encounters instead of 30%.
 - Region tags show NPC control (☯ righteous, ☠ demonic, "Freed" when open).
+- (update) NPC variety: ~130 NPCs in total (7 per unclaimed wild region at the start). Wanderers may move every hour (50%); stage growth and purse refills stay daily. Each "Look for opponents" scan shows guardians and disciples always, plus a random 2–4 of the wanderers currently in the region.
