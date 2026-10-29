@@ -138,9 +138,10 @@
       const ch = await loadCharacter();
       if (!ch) { show('screen-create'); return; }
       if (ch.gained > 0 && ch.away_seconds >= 60) {
-        toast(`While you were away (${duration(ch.away_seconds)}) you gathered ${fmt(ch.gained)} qi.`);
+        toast(`In seclusion (${duration(ch.away_seconds)}) you gathered ${fmt(ch.gained)} qi.`);
       }
       renderHome(ch);
+      loadWorld().then(tick).catch(() => {});
     } catch (e) {
       toast(friendly(e));
       show('screen-auth');
@@ -152,10 +153,68 @@
   let syncedAt = 0;       // when we got it (local clock)
   let ticker = null;
 
+  // Qi only flows while actively cultivating or in seclusion.
+  function modeNow() {
+    if (!state) return 'idle';
+    const t = serverNow();
+    if (state.seclusion_until && new Date(state.seclusion_until).getTime() > t) return 'seclusion';
+    if (state.cultivate_until && new Date(state.cultivate_until).getTime() > t) return 'active';
+    return 'idle';
+  }
+  function secsLeft(iso) { return iso ? (new Date(iso).getTime() - serverNow()) / 1000 : 0; }
   function liveQi() {
     if (!state) return 0;
-    const est = state.qi + Math.floor(((Date.now() - syncedAt) / 1000) * state.qi_rate);
-    return Math.min(state.qi_needed, est);
+    const from = new Date(state.qi_updated_at).getTime();
+    const t = serverNow();
+    let gain = 0;
+    if (state.cultivate_until) {
+      gain += Math.max(0, (Math.min(t, new Date(state.cultivate_until).getTime()) - from) / 1000) * state.qi_rate;
+    }
+    if (state.seclusion_until && state.seclusion_started_at) {
+      const s = Math.max(from, new Date(state.seclusion_started_at).getTime());
+      gain += Math.max(0, (Math.min(t, new Date(state.seclusion_until).getTime()) - s) / 1000) * state.qi_rate * state.seclusion_mult;
+    }
+    return Math.min(state.qi_needed, state.qi + Math.floor(gain));
+  }
+
+  function renderSession() {
+    const mode = modeNow();
+    const status = $('#session-status');
+    const cult = $('#btn-cultivate');
+    const end = $('#btn-end-secl');
+    const box = $('#seclusion-box');
+    const leftToday = Math.max(0, state.seclusion_left_today);
+    const town = state.region && state.region.is_town;
+    status.className = `session-status m-${mode}`;
+    if (mode === 'seclusion') {
+      status.textContent = `In seclusion · ${duration(secsLeft(state.seclusion_until))} left · ×${state.seclusion_mult} speed`;
+      cult.hidden = true; end.hidden = false; box.hidden = true;
+    } else {
+      end.hidden = true; cult.hidden = false; box.hidden = false;
+      if (mode === 'active') {
+        status.textContent = `Cultivating · ${duration(secsLeft(state.cultivate_until))} left`;
+        cult.textContent = 'Keep cultivating · reset to 1 hour';
+      } else {
+        status.textContent = 'You are not cultivating. No qi is being gathered.';
+        cult.textContent = 'Cultivate · 1 hour';
+      }
+      cult.disabled = cult.dataset.busy === '1';
+      $('#secl-left').textContent = leftToday > 0 ? `${duration(leftToday)} left today` : 'None left today';
+      document.querySelectorAll('#secl-hours .hour').forEach((b) => {
+        b.disabled = !town || !!state.travel || Number(b.dataset.h) * 3600 > leftToday;
+      });
+      const note = $('#secl-note');
+      if (state.travel) note.textContent = 'You cannot enter seclusion while travelling.';
+      else if (!town) note.textContent = `Seclusion is only possible in a town.${nearestTownText()}`;
+      else if (leftToday < 7200) note.textContent = 'You have used today’s seclusion. It resets at midnight.';
+      else note.textContent = `For when you go offline. Gathers qi ×${state.seclusion_mult} faster. You cannot explore or travel while secluded.`;
+    }
+  }
+
+  function nearestTownText() {
+    if (!world || !state.region) return '';
+    const t = world.regions.find((r) => r.is_town && r.continent_id === state.region.continent_id);
+    return t ? ` Nearest: ${t.name}.` : '';
   }
 
   function nextLabel() {
@@ -172,9 +231,20 @@
     $('#home-qi').textContent = `${fmt(qi)} / ${fmt(need)}`;
     $('#home-qi-bar').style.width = `${Math.min(100, (qi / need) * 100)}%`;
     $('#home-qi-bar').classList.toggle('full', full);
-    $('#home-rate').textContent = `+${Number(state.qi_rate).toLocaleString('en-US', { maximumFractionDigits: 2 })} qi/sec`;
-    $('#home-eta').textContent = full ? 'Your qi is full. Further qi is wasted.' : `Full in ${duration((need - qi) / state.qi_rate)}`;
+    const mode = modeNow();
+    const rate = mode === 'seclusion' ? state.qi_rate * state.seclusion_mult : mode === 'active' ? state.qi_rate : 0;
+    $('#home-rate').textContent = rate ? `+${Number(rate).toLocaleString('en-US', { maximumFractionDigits: 2 })} qi/sec` : 'Not cultivating';
+    let eta;
+    if (full) eta = 'Your qi is full. Advance to keep growing.';
+    else if (!rate) eta = '';
+    else {
+      const toFull = (need - qi) / rate;
+      const sessionLeft = secsLeft(mode === 'seclusion' ? state.seclusion_until : state.cultivate_until);
+      eta = toFull <= sessionLeft ? `Full in ${duration(toFull)}` : `+${fmt(Math.floor(rate * sessionLeft))} more this session`;
+    }
+    $('#home-eta').textContent = eta;
     $('#home-eta').classList.toggle('warn', full);
+    renderSession();
 
     const btn = $('#btn-breakthrough');
     const peak = state.realm === 10 && state.stage === 10;
@@ -244,6 +314,49 @@
     renderHome(data);
   });
 
+  // ---------- Cultivation sessions ----------
+  $('#btn-cultivate').addEventListener('click', async () => {
+    const b = $('#btn-cultivate');
+    b.dataset.busy = '1'; b.disabled = true;
+    const { data, error } = await sb.rpc('start_cultivating');
+    b.dataset.busy = '';
+    if (error) { toast(friendly(error)); tick(); return; }
+    toast('You sit cross-legged and begin circulating your qi.');
+    renderHome(data);
+  });
+
+  // Two taps to start or end seclusion, so it isn't triggered by accident.
+  function armed(btn, label, action) {
+    if (btn.dataset.armed === '1') { btn.dataset.armed = ''; return action(); }
+    document.querySelectorAll('[data-armed="1"]').forEach((x) => { x.dataset.armed = ''; x.textContent = x.dataset.orig; });
+    btn.dataset.orig = btn.textContent;
+    btn.dataset.armed = '1';
+    btn.textContent = label;
+    setTimeout(() => { if (btn.dataset.armed === '1') { btn.dataset.armed = ''; btn.textContent = btn.dataset.orig; } }, 4000);
+  }
+
+  document.querySelectorAll('#secl-hours .hour').forEach((b) => b.addEventListener('click', () => {
+    const h = Number(b.dataset.h);
+    armed(b, 'Confirm', async () => {
+      b.textContent = `${h}h`;
+      const { data, error } = await sb.rpc('start_seclusion', { p_hours: h });
+      if (error) return toast(friendly(error));
+      toast(`You close the door and enter seclusion for ${h} hours.`);
+      renderHome(data);
+    });
+  }));
+
+  $('#btn-end-secl').addEventListener('click', () => {
+    const b = $('#btn-end-secl');
+    armed(b, 'Tap again to leave — unused time is returned', async () => {
+      b.textContent = 'Leave seclusion early';
+      const { data, error } = await sb.rpc('end_seclusion');
+      if (error) return toast(friendly(error));
+      toast('You leave seclusion. Unused time is added back to today.');
+      renderHome(data);
+    });
+  });
+
   // ---------- Time helpers (server clock) ----------
   let clockOffset = 0; // server time minus local time, ms
   const serverNow = () => Date.now() + clockOffset;
@@ -290,7 +403,7 @@
     if (world) return world;
     const [c, r] = await Promise.all([
       sb.from('continents').select('*').order('sort'),
-      sb.from('regions').select('id,continent_id,name,danger,description').order('id')
+      sb.from('regions').select('id,continent_id,name,danger,description,is_town').order('continent_id').order('danger').order('id')
     ]);
     if (c.error || r.error) throw (c.error || r.error);
     world = { continents: c.data, regions: r.data };
@@ -331,9 +444,12 @@
     } else tb.hidden = true;
 
     if (btn.dataset.busy !== '1') {
-      btn.disabled = !!state.travel || st < state.explore_cost;
-      btn.textContent = state.travel ? 'Travelling…' : st < state.explore_cost ? 'Too tired — rest a while' : `Explore (−${state.explore_cost} stamina)`;
+      const secluded = modeNow() === 'seclusion';
+      btn.disabled = secluded || !!state.travel || st < state.explore_cost;
+      btn.textContent = secluded ? 'In seclusion' : state.travel ? 'Travelling…' : st < state.explore_cost ? 'Too tired — rest a while' : `Explore (−${state.explore_cost} stamina)`;
     }
+    const tag = $('#world-town');
+    if (tag) tag.hidden = !reg.is_town;
   }
   let arrivalCheck = false;
 
@@ -363,11 +479,12 @@
       const going = state.travel && state.travel.id === r.id;
       const li = document.createElement('li');
       li.className = here ? 'here' : '';
-      li.innerHTML = `<div class="r-main"><strong>${r.name}</strong><span class="danger ${di.cls}">Danger ${r.danger} · ${di.label}</span></div>`;
+      const townTag = r.is_town ? '<span class="town-tag">Town · seclusion</span>' : '';
+      li.innerHTML = `<div class="r-main"><strong>${r.name}</strong><div class="tags"><span class="danger ${di.cls}">Danger ${r.danger} · ${di.label}</span>${townTag}</div></div>`;
       const b = document.createElement('button');
       b.className = 'btn ghost small';
       b.textContent = here ? 'You are here' : going ? 'On the way' : 'Travel';
-      b.disabled = here || !!state.travel;
+      b.disabled = here || !!state.travel || modeNow() === 'seclusion';
       b.onclick = () => doTravel(r);
       li.appendChild(b);
       ul.appendChild(li);

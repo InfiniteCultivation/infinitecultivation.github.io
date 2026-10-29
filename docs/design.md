@@ -73,3 +73,13 @@ Decisions agreed with the owner, to build into later milestones.
 - Harder regions (danger above your realm) give more but beasts are more likely to beat you.
 - Items: materials (for future crafting) and consumables. Pills give qi but add temporary toxicity; overflow past 100 turns half the excess into permanent toxicity. App warns before overflowing.
 - Toxicity slows cultivation: temporary up to −50%, permanent up to −67%.
+
+## Active cultivation & seclusion (agreed Oct 29 2026)
+- No always-on qi.
+- Active cultivation: tap Cultivate; it runs for 1 hour; tap again each hour to keep going. Players can fight, explore, chat etc. while it runs.
+- Secluded cultivation: for when offline. Only in a town or (later) your sect. Choose 2, 4, 6 or 8 hours. Faster qi than active. Limit 8 hours of seclusion per day. Sects can upgrade to give seclusion bonuses.
+
+## Later (not now)
+- Personal upgrade trees (alongside sect trees): longer cultivation/seclusion time and bigger bonuses. Points earned per cultivation level, or rarely in Divine Realms.
+- Stat allocation, inspired by a "Parameters" screen with sliders: points earned through actions, put into areas such as cultivation vs combat; saved builds; reset only with rare special items.
+- Possible in-app purchase market if the game goes to Google Play / App Store.

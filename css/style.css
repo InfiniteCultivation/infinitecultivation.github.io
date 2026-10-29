@@ -279,3 +279,23 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,178,94,0
 .bag .btn.small { flex: 0 0 auto; }
 .warn-box { background: rgba(176,69,143,0.14); border: 1px solid rgba(176,69,143,0.5); color: #f0c4e2; border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 10px; line-height: 1.45; }
 #screen-home.active ~ #toast, body:has(#screen-home.active) #toast { bottom: calc(env(safe-area-inset-bottom) + 92px); }
+
+/* Cultivation sessions */
+.session { margin-top: 16px; display: grid; gap: 10px; }
+.session-status { margin: 0; font-size: .88rem; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.25); color: var(--muted); }
+.session-status.m-active { color: #a6f0d2; background: rgba(95,196,160,0.10); border: 1px solid rgba(95,196,160,0.3); }
+.session-status.m-seclusion { color: #d9c8ff; background: rgba(150,120,230,0.12); border: 1px solid rgba(150,120,230,0.35); }
+.btn.jade { color: #06231a; background: linear-gradient(145deg, #a6f0d2, var(--jade)); box-shadow: 0 6px 24px rgba(95,196,160,0.22); }
+.btn[hidden] { display: none; }
+.seclusion { padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.06); }
+.seclusion[hidden] { display: none; }
+.secl-head { display: flex; justify-content: space-between; font-size: .85rem; font-weight: 600; margin-bottom: 8px; }
+.secl-head span:last-child { color: var(--muted); font-weight: 500; }
+.secl-hours { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.hour { appearance: none; font: inherit; font-weight: 600; padding: 9px 0; border-radius: 9px; border: 1px solid rgba(150,120,230,0.45); background: rgba(150,120,230,0.10); color: #d9c8ff; cursor: pointer; }
+.hour:disabled { opacity: .35; }
+.hour[data-armed="1"] { background: #9678e6; color: #120a26; }
+.secl-note { margin: 8px 0 0; font-size: .78rem; color: var(--muted); line-height: 1.4; }
+#btn-end-secl[data-armed="1"] { border-color: var(--danger); color: var(--danger); }
+.town-tag { font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 99px; color: #d9c8ff; background: rgba(150,120,230,0.14); white-space: nowrap; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
