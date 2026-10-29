@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cultivation</title>
+  <meta name="theme-color" content="#0b0f17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cultivation">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="mist" aria-hidden="true"></div>
+
+  <main id="app">
+    <!-- Loading -->
+    <section id="screen-loading" class="screen active">
+      <div class="seal">修</div>
+      <p class="muted">Gathering qi…</p>
+    </section>
+
+    <!-- Sign in / Create account -->
+    <section id="screen-auth" class="screen">
+      <header class="brand">
+        <div class="seal">修</div>
+        <h1>Cultivation</h1>
+        <p class="muted">Ten realms. One path to immortality.</p>
+      </header>
+
+      <div class="card">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="signin" role="tab">Sign in</button>
+          <button class="tab" data-tab="signup" role="tab">Create account</button>
+        </div>
+
+        <form id="form-signin" class="form" autocomplete="on">
+          <label>Username
+            <input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+          </label>
+          <label>Password
+            <input name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <p class="error" hidden></p>
+          <button class="btn primary" type="submit">Enter the sect</button>
+        </form>
+
+        <form id="form-signup" class="form" autocomplete="on" hidden>
+          <label>Username
+            <input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="16">
+            <small class="hint">3–16 letters, numbers or _ — used to sign in</small>
+          </label>
+          <label>Password
+            <input name="password" type="password" autocomplete="new-password" required minlength="6">
+            <small class="hint">At least 6 characters</small>
+          </label>
+          <label>Confirm password
+            <input name="confirm" type="password" autocomplete="new-password" required minlength="6">
+          </label>
+          <p class="error" hidden></p>
+          <button class="btn primary" type="submit">Create account</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Character creation -->
+    <section id="screen-create" class="screen">
+      <header class="brand small">
+        <h2>Begin your path</h2>
+        <p class="muted">Choose the name you will be known by across the realms.</p>
+      </header>
+
+      <div class="card" id="create-step-name">
+        <form id="form-create" class="form">
+          <label>Character name
+            <input name="name" maxlength="20" autocomplete="off" required>
+            <small class="hint">2–20 letters, one space allowed (e.g. Lin Feng)</small>
+          </label>
+          <div class="note">
+            <strong>Spirit Root</strong>
+            <p>When you awaken, the heavens decide your spirit root. It is permanent and shapes how fast you cultivate. Fewer elements means a purer root.</p>
+          </div>
+          <p class="error" hidden></p>
+          <button class="btn primary" type="submit">Awaken spirit root</button>
+        </form>
+      </div>
+
+      <div class="card reveal" id="create-step-reveal" hidden>
+        <p class="muted center">The heavens have spoken</p>
+        <h3 class="center" id="reveal-name"></h3>
+        <div class="orbs" id="reveal-orbs"></div>
+        <p class="grade center" id="reveal-grade"></p>
+        <p class="muted center" id="reveal-desc"></p>
+        <button class="btn primary" id="btn-begin">Begin cultivating</button>
+      </div>
+    </section>
+
+    <!-- Character sheet -->
+    <section id="screen-home" class="screen">
+      <header class="topbar">
+        <span class="seal tiny">修</span>
+        <span class="who" id="home-username"></span>
+        <button class="btn ghost small" id="btn-signout">Sign out</button>
+      </header>
+
+      <div class="card sheet">
+        <h2 id="home-name"></h2>
+        <p class="realm" id="home-realm"></p>
+
+        <div class="meter">
+          <div class="meter-label"><span>Qi</span><span id="home-qi"></span></div>
+          <div class="meter-track"><div class="meter-fill" id="home-qi-bar"></div></div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Spirit Root</span>
+            <span class="stat-value" id="home-root"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Cultivation speed</span>
+            <span class="stat-value" id="home-mult"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Spirit Stones</span>
+            <span class="stat-value" id="home-stones"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Realm</span>
+            <span class="stat-value" id="home-realm-num"></span>
+          </div>
+        </div>
+        <div class="orbs small" id="home-orbs"></div>
+      </div>
+
+      <div class="card soon">
+        <p class="muted center">Meditation, breakthroughs and the wider world arrive in the next milestone.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" role="status" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
