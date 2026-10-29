@@ -192,3 +192,90 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,178,94,0
 .flash-fail { animation: flashfail 1s ease; }
 @keyframes flashok { 0% { box-shadow: 0 0 0 rgba(240,212,138,0); } 30% { box-shadow: 0 0 60px rgba(240,212,138,0.7); } 100% { box-shadow: 0 10px 40px rgba(0,0,0,0.35); } }
 @keyframes flashfail { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+
+/* Milestone 3: tabs, world, bag, toxicity */
+#screen-home { padding-bottom: 84px; }
+.pane { display: none; }
+.pane.active { display: block; animation: fade .25s ease; }
+
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  max-width: 460px; margin: 0 auto;
+  padding: 8px 12px calc(env(safe-area-inset-bottom) + 8px);
+  background: rgba(11, 15, 23, 0.92);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.tabbar-btn { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: .75rem; font-weight: 600; display: grid; justify-items: center; gap: 2px; padding: 6px 0; cursor: pointer; border-radius: 10px; }
+.tabbar-btn .ico { font-family: serif; font-size: 1.3rem; line-height: 1.1; }
+.tabbar-btn.active { color: var(--gold-2); background: rgba(214,178,94,0.10); }
+
+/* toxicity */
+.tox { margin-top: 18px; display: grid; gap: 8px; }
+.tox.clean { opacity: .55; }
+.tox-row { display: grid; grid-template-columns: 9.5rem 1fr 2rem; align-items: center; gap: 8px; font-size: .78rem; color: var(--muted); }
+.tox-label small { color: #6c7486; }
+.tox-val { text-align: right; font-weight: 600; color: var(--text); }
+.meter-track.thin { height: 6px; }
+.meter-fill.tox-temp { background: linear-gradient(90deg, #8bbf3a, #c6d84a); }
+.meter-fill.tox-perm { background: linear-gradient(90deg, #7a3d9a, #b0458f); }
+.tox-note { margin: 0; font-size: .78rem; color: #c6d84a; }
+.tox-note[hidden] { display: none; }
+
+/* world */
+.eyebrow { margin: 0 0 4px; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.here h2 { font-size: 1.45rem; }
+.danger-line { margin: 8px 0 6px; }
+.danger { font-size: .75rem; font-weight: 600; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,0.06); white-space: nowrap; }
+.danger.d0 { color: #8fa0b8; }
+.danger.d1 { color: var(--jade); }
+.danger.d2 { color: var(--gold-2); }
+.danger.d3 { color: #ff9f5a; }
+.danger.d4 { color: var(--danger); background: rgba(255,122,107,0.12); }
+.desc { margin: 6px 0 16px; font-size: .9rem; line-height: 1.45; }
+.meter-fill.stamina { background: linear-gradient(90deg, #4f8fe0, #8fc0ff); }
+#btn-explore { margin-top: 14px; }
+.travel-banner { background: rgba(79,143,224,0.12); border: 1px solid rgba(79,143,224,0.35); color: #b9d4ff; border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 14px; }
+.travel-banner[hidden] { display: none; }
+
+.story p { margin: 0; line-height: 1.5; }
+.story.k-rare, .story.k-encounter { border-color: rgba(240,212,138,0.6); box-shadow: 0 0 30px rgba(240,212,138,0.2); }
+.story.k-beast_lost { border-color: rgba(255,122,107,0.45); }
+.gains { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.gain { font-size: .78rem; font-weight: 600; padding: 4px 9px; border-radius: 99px; background: rgba(255,255,255,0.06); }
+.gain.qi { color: #a6f0d2; }
+.gain.stone { color: #9fd0ff; }
+.gain.item { color: var(--gold-2); }
+.gain.bad { color: var(--danger); }
+.gain.warn { color: var(--gold-2); }
+
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { appearance: none; flex: 0 0 auto; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: var(--muted); font: inherit; font-size: .8rem; padding: 7px 12px; border-radius: 99px; cursor: pointer; }
+.chip.active { color: var(--gold-2); border-color: var(--gold); background: rgba(214,178,94,0.12); }
+.regions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.regions li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; }
+.regions li.here { border-color: rgba(95,196,160,0.5); }
+.regions li.cont-desc { display: block; background: none; border: 0; padding: 0 2px 4px; font-size: .82rem; color: var(--muted); line-height: 1.45; }
+.r-main { display: grid; gap: 4px; justify-items: start; }
+.r-main strong { font-weight: 600; font-size: .92rem; }
+.regions .btn.small { flex: 0 0 auto; }
+
+/* bag */
+.bag-head { display: flex; justify-content: space-between; align-items: baseline; }
+.small-text { font-size: .8rem; }
+.bag { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bag li { display: flex; gap: 10px; align-items: center; padding: 12px; background: rgba(0,0,0,0.22); border-radius: 12px; border-left: 3px solid #6c7486; }
+.bag li.rar-uncommon { border-left-color: var(--jade); }
+.bag li.rar-rare { border-left-color: #6fa8ff; }
+.bag li.rar-legendary { border-left-color: var(--gold-2); box-shadow: inset 0 0 20px rgba(240,212,138,0.08); }
+.it-main { flex: 1; display: grid; gap: 2px; }
+.it-top { display: flex; justify-content: space-between; gap: 8px; }
+.qty { color: var(--muted); font-weight: 600; }
+.rarity { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.it-main p { margin: 4px 0 0; font-size: .82rem; color: var(--muted); line-height: 1.4; }
+.it-main p.fx { color: #c6d84a; }
+.bag .btn.small { flex: 0 0 auto; }
+.warn-box { background: rgba(176,69,143,0.14); border: 1px solid rgba(176,69,143,0.5); color: #f0c4e2; border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 10px; line-height: 1.45; }
+#screen-home.active ~ #toast, body:has(#screen-home.active) #toast { bottom: calc(env(safe-area-inset-bottom) + 92px); }

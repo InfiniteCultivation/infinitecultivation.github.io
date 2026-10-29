@@ -185,6 +185,9 @@
       chanceEl.hidden = false;
       chanceEl.textContent = `Major breakthrough · ${Math.round(state.major_chance * 100)}% success · failure scatters half your qi`;
     } else chanceEl.hidden = true;
+
+    renderTox();
+    if ($('#pane-world').classList.contains('active')) renderWorld();
   }
 
   function renderLog(rows) {
@@ -207,6 +210,7 @@
   function renderHome(ch) {
     state = ch;
     syncedAt = Date.now();
+    if (ch.server_time) clockOffset = new Date(ch.server_time).getTime() - Date.now();
     $('#home-username').textContent = currentProfile ? currentProfile.username + (currentProfile.is_admin ? ' · Admin' : '') : '';
     $('#home-name').textContent = ch.name;
     $('#home-realm').textContent = `${REALMS[ch.realm - 1]} · Stage ${ch.stage}`;
@@ -239,6 +243,244 @@
     card.classList.add(data.success ? 'flash-ok' : 'flash-fail');
     renderHome(data);
   });
+
+  // ---------- Time helpers (server clock) ----------
+  let clockOffset = 0; // server time minus local time, ms
+  const serverNow = () => Date.now() + clockOffset;
+  const secsSince = (iso) => (serverNow() - new Date(iso).getTime()) / 1000;
+
+  function liveStamina() {
+    if (!state) return 0;
+    if (state.stamina >= state.stamina_max) return state.stamina_max;
+    return Math.min(state.stamina_max, state.stamina + Math.floor(secsSince(state.stamina_updated_at) / state.stamina_regen_sec));
+  }
+  function liveToxTemp() {
+    if (!state) return 0;
+    return Math.max(0, Number(state.tox_temp) - secsSince(state.tox_updated_at) / state.tox_decay_sec);
+  }
+
+  function dangerInfo(danger) {
+    const d = danger - (state ? state.realm : 1);
+    if (d <= -2) return { label: 'Trivial', cls: 'd0' };
+    if (d === -1) return { label: 'Safe', cls: 'd1' };
+    if (d === 0) return { label: 'Fair', cls: 'd2' };
+    if (d === 1) return { label: 'Dangerous', cls: 'd3' };
+    return { label: 'Deadly', cls: 'd4' };
+  }
+
+  function renderTox() {
+    const t = liveToxTemp();
+    const p = Number(state.tox_perm);
+    $('#tox-temp-bar').style.width = `${t}%`;
+    $('#tox-perm-bar').style.width = `${p}%`;
+    $('#tox-temp-val').textContent = t < 0.5 ? '0' : Math.round(t);
+    $('#tox-perm-val').textContent = p < 0.5 ? '0' : Math.round(p);
+    $('#home-tox').classList.toggle('clean', t < 0.5 && p < 0.5);
+    const slow = Math.round((1 - state.qi_rate / state.qi_rate_base) * 100);
+    const note = $('#tox-note');
+    note.hidden = slow < 1;
+    note.textContent = `Toxins are slowing your cultivation by ${slow}%.`;
+  }
+
+  // ---------- World ----------
+  let world = null; // { continents, regions }
+  let viewContinent = null;
+
+  async function loadWorld() {
+    if (world) return world;
+    const [c, r] = await Promise.all([
+      sb.from('continents').select('*').order('sort'),
+      sb.from('regions').select('id,continent_id,name,danger,description').order('id')
+    ]);
+    if (c.error || r.error) throw (c.error || r.error);
+    world = { continents: c.data, regions: r.data };
+    return world;
+  }
+
+  function renderWorld() {
+    if (!state || !state.region) return;
+    const reg = state.region;
+    $('#world-continent').textContent = reg.continent;
+    $('#world-region').textContent = reg.name;
+    const di = dangerInfo(reg.danger);
+    const dz = $('#world-danger');
+    dz.textContent = `Danger ${reg.danger} · ${di.label} for you`;
+    dz.className = `danger ${di.cls}`;
+    $('#world-desc').textContent = reg.description;
+
+    const st = liveStamina();
+    $('#world-stamina').textContent = `${st} / ${state.stamina_max}`;
+    $('#world-stamina-bar').style.width = `${(st / state.stamina_max) * 100}%`;
+    if (st >= state.stamina_max) $('#world-stamina-note').textContent = 'Fully rested';
+    else {
+      const intoNext = secsSince(state.stamina_updated_at) % state.stamina_regen_sec;
+      const toFull = (state.stamina_max - st) * state.stamina_regen_sec - intoNext;
+      $('#world-stamina-note').textContent = `Full in ${duration(toFull)}`;
+    }
+
+    const tb = $('#world-travel');
+    const btn = $('#btn-explore');
+    if (state.travel) {
+      const left = (new Date(state.travel.arrive_at).getTime() - serverNow()) / 1000;
+      tb.hidden = false;
+      tb.textContent = left > 0 ? `Travelling to ${state.travel.name} · arrives in ${duration(left)}` : `Arriving at ${state.travel.name}…`;
+      if (left <= 0 && !arrivalCheck) {
+        arrivalCheck = true;
+        loadCharacter().then((ch) => { arrivalCheck = false; renderHome(ch); renderRegions(); }).catch(() => { arrivalCheck = false; });
+      }
+    } else tb.hidden = true;
+
+    if (btn.dataset.busy !== '1') {
+      btn.disabled = !!state.travel || st < state.explore_cost;
+      btn.textContent = state.travel ? 'Travelling…' : st < state.explore_cost ? 'Too tired — rest a while' : `Explore (−${state.explore_cost} stamina)`;
+    }
+  }
+  let arrivalCheck = false;
+
+  function renderRegions() {
+    if (!world || !state) return;
+    if (viewContinent == null) viewContinent = state.region.continent_id;
+    const chips = $('#world-continents');
+    chips.innerHTML = '';
+    world.continents.forEach((c) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (c.id === viewContinent ? ' active' : '');
+      b.textContent = c.name.replace(/ (Continent|Wilds|Desert|Highlands)$/, '');
+      b.title = c.name;
+      b.onclick = () => { viewContinent = c.id; renderRegions(); };
+      chips.appendChild(b);
+    });
+    const ul = $('#world-regions');
+    ul.innerHTML = '';
+    const cont = world.continents.find((c) => c.id === viewContinent);
+    const head = document.createElement('li');
+    head.className = 'cont-desc';
+    head.textContent = cont ? cont.description : '';
+    ul.appendChild(head);
+    world.regions.filter((r) => r.continent_id === viewContinent).forEach((r) => {
+      const di = dangerInfo(r.danger);
+      const here = r.id === state.region_id;
+      const going = state.travel && state.travel.id === r.id;
+      const li = document.createElement('li');
+      li.className = here ? 'here' : '';
+      li.innerHTML = `<div class="r-main"><strong>${r.name}</strong><span class="danger ${di.cls}">Danger ${r.danger} · ${di.label}</span></div>`;
+      const b = document.createElement('button');
+      b.className = 'btn ghost small';
+      b.textContent = here ? 'You are here' : going ? 'On the way' : 'Travel';
+      b.disabled = here || !!state.travel;
+      b.onclick = () => doTravel(r);
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+
+  async function doTravel(r) {
+    const sameCont = r.continent_id === state.region.continent_id;
+    const { data, error } = await sb.rpc('travel', { p_region: r.id });
+    if (error) return toast(friendly(error));
+    renderHome(data);
+    renderRegions();
+    toast(`You set out for ${r.name}${sameCont ? '' : ' — a long journey across continents'}.`);
+  }
+
+  $('#btn-explore').addEventListener('click', async () => {
+    const btn = $('#btn-explore');
+    btn.dataset.busy = '1';
+    btn.disabled = true;
+    btn.textContent = 'Exploring…';
+    const { data, error } = await sb.rpc('explore');
+    btn.dataset.busy = '';
+    if (error) { toast(friendly(error)); renderWorld(); return; }
+    const box = $('#world-result');
+    const bits = [];
+    if (data.qi > 0) bits.push(`<span class="gain qi">+${fmt(data.qi)} qi</span>`);
+    if (data.qi_wasted) bits.push('<span class="gain warn">Your qi is full — advance to stop wasting it</span>');
+    if (data.qi_lost > 0) bits.push(`<span class="gain bad">−${fmt(data.qi_lost)} qi</span>`);
+    if (data.stones > 0) bits.push(`<span class="gain stone">+${fmt(data.stones)} spirit stones</span>`);
+    if (data.item_name) bits.push(`<span class="gain item">+1 ${data.item_name}</span>`);
+    if (data.extra_cost > 0) bits.push(`<span class="gain bad">−${data.extra_cost} extra stamina</span>`);
+    box.className = `card story k-${data.kind}`;
+    box.innerHTML = `<p>${data.story}</p><div class="gains">${bits.join('')}</div>`;
+    box.hidden = false;
+    renderHome(data.character);
+  });
+
+  // ---------- Bag ----------
+  let itemCatalog = null;
+
+  async function loadBag() {
+    if (!state) return;
+    if (!itemCatalog) {
+      const { data } = await sb.from('items').select('*');
+      itemCatalog = Object.fromEntries((data || []).map((i) => [i.id, i]));
+    }
+    const { data, error } = await sb.from('inventory').select('item_id,qty').eq('character_id', state.id).gt('qty', 0);
+    if (error) return toast(friendly(error));
+    $('#bag-stones').textContent = `${fmt(state.spirit_stones)} spirit stones`;
+    const ul = $('#bag-list');
+    ul.innerHTML = '';
+    const order = { legendary: 0, rare: 1, uncommon: 2, common: 3 };
+    const rows = (data || []).map((r) => ({ ...itemCatalog[r.item_id], qty: r.qty }))
+      .sort((a, b) => (a.kind === b.kind ? order[a.rarity] - order[b.rarity] : a.kind === 'consumable' ? -1 : 1));
+    $('#bag-empty').hidden = rows.length > 0;
+    rows.forEach((it) => {
+      const li = document.createElement('li');
+      li.className = `rar-${it.rarity}`;
+      const fx = [];
+      if (it.effects.qi_pct) fx.push(`+${Math.round(it.effects.qi_pct * 100)}% of stage qi`);
+      if (it.effects.tox) fx.push(`+${it.effects.tox} toxicity`);
+      if (it.effects.tox_clear) fx.push(`−${it.effects.tox_clear} toxicity`);
+      if (it.effects.perm_clear) fx.push(`−${it.effects.perm_clear} deep toxicity`);
+      li.innerHTML = `<div class="it-main"><div class="it-top"><strong>${it.name}</strong><span class="qty">×${it.qty}</span></div>
+        <span class="rarity">${it.rarity} ${it.kind === 'material' ? 'material' : ''}</span>
+        <p>${it.description}</p>${fx.length ? `<p class="fx">${fx.join(' · ')}</p>` : ''}</div>`;
+      if (it.kind === 'consumable') {
+        const b = document.createElement('button');
+        b.className = 'btn primary small';
+        b.textContent = 'Use';
+        b.onclick = () => useItem(it, b);
+        li.appendChild(b);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  async function useItem(it, btn) {
+    if (it.effects.tox) {
+      const after = liveToxTemp() + it.effects.tox;
+      if (after > 100 && !confirmOverflow(it, after)) return;
+    }
+    btn.disabled = true;
+    const { data, error } = await sb.rpc('use_item', { p_item: it.id });
+    if (error) { btn.disabled = false; return toast(friendly(error)); }
+    toast(data.message);
+    renderHome(data.character);
+    loadBag();
+  }
+
+  // Warn before a pill would push toxicity past the limit (that part becomes permanent).
+  function confirmOverflow(it, after) {
+    const box = $('#bag-warning');
+    if (box && box.dataset.item === it.id) { box.remove(); return true; }
+    if (box) box.remove();
+    const w = document.createElement('div');
+    w.id = 'bag-warning';
+    w.dataset.item = it.id;
+    w.className = 'warn-box';
+    w.textContent = `Your body can only hold so much. ${it.name} would push your toxicity to ${Math.round(after)} — anything over 100 sinks in as permanent deep toxicity. Tap Use again to take it anyway.`;
+    $('#bag-list').before(w);
+    return false;
+  }
+
+  // ---------- Tabs ----------
+  function showPane(id) {
+    document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
+    document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
+    window.scrollTo(0, 0);
+    if (id === 'pane-world') loadWorld().then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
+    if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
+  }
+  document.querySelectorAll('.tabbar-btn').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.pane)));
 
   // Re-check with the server when the app comes back to the screen.
   document.addEventListener('visibilitychange', async () => {
@@ -297,6 +539,10 @@
   $('#btn-signout').addEventListener('click', async () => {
     clearInterval(ticker);
     state = null;
+    viewContinent = null;
+    itemCatalog = null;
+    $('#world-result').hidden = true;
+    showPane('pane-cultivate');
     await sb.auth.signOut();
     currentProfile = null;
     show('screen-auth');

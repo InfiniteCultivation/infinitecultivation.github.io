@@ -110,6 +110,7 @@
         <button class="btn ghost small" id="btn-signout">Sign out</button>
       </header>
 
+      <div class="pane active" id="pane-cultivate">
       <div class="card sheet" id="home-card">
         <h2 id="home-name"></h2>
         <p class="realm" id="home-realm"></p>
@@ -122,6 +123,20 @@
 
         <p class="chance" id="home-chance" hidden></p>
         <button class="btn primary" id="btn-breakthrough" disabled>Advance</button>
+
+        <div class="tox" id="home-tox">
+          <div class="tox-row">
+            <span class="tox-label">Toxicity <small>(fades)</small></span>
+            <div class="meter-track thin"><div class="meter-fill tox-temp" id="tox-temp-bar"></div></div>
+            <span class="tox-val" id="tox-temp-val"></span>
+          </div>
+          <div class="tox-row">
+            <span class="tox-label">Deep toxicity <small>(permanent)</small></span>
+            <div class="meter-track thin"><div class="meter-fill tox-perm" id="tox-perm-bar"></div></div>
+            <span class="tox-val" id="tox-perm-val"></span>
+          </div>
+          <p class="tox-note" id="tox-note" hidden></p>
+        </div>
 
         <div class="stats">
           <div class="stat">
@@ -150,8 +165,54 @@
       </div>
 
       <div class="card soon">
-        <p class="muted center">Your character gathers qi on its own — even while the app is closed. Come back when your qi is full to advance.</p>
+        <p class="muted center">Qi trickles in on its own, even while the app is closed. Explore the world to grow faster.</p>
       </div>
+      </div>
+
+      <!-- World -->
+      <div class="pane" id="pane-world">
+        <div class="card here">
+          <p class="eyebrow" id="world-continent"></p>
+          <h2 id="world-region"></h2>
+          <p class="danger-line"><span class="danger" id="world-danger"></span></p>
+          <p class="muted desc" id="world-desc"></p>
+
+          <div class="travel-banner" id="world-travel" hidden></div>
+
+          <div class="meter">
+            <div class="meter-label"><span>Stamina</span><span id="world-stamina"></span></div>
+            <div class="meter-track"><div class="meter-fill stamina" id="world-stamina-bar"></div></div>
+            <div class="meter-sub"><span id="world-stamina-note"></span><span></span></div>
+          </div>
+          <button class="btn primary" id="btn-explore">Explore</button>
+        </div>
+
+        <div class="card story" id="world-result" hidden></div>
+
+        <div class="card">
+          <h4 class="card-title">Travel</h4>
+          <div class="chips" id="world-continents"></div>
+          <ul class="regions" id="world-regions"></ul>
+        </div>
+      </div>
+
+      <!-- Bag -->
+      <div class="pane" id="pane-bag">
+        <div class="card">
+          <div class="bag-head">
+            <h4 class="card-title">Storage pouch</h4>
+            <span class="muted small-text" id="bag-stones"></span>
+          </div>
+          <p class="muted center" id="bag-empty" hidden>Your pouch is empty. Explore to find herbs, cores and treasures.</p>
+          <ul class="bag" id="bag-list"></ul>
+        </div>
+      </div>
+
+      <nav class="tabbar" id="tabbar">
+        <button class="tabbar-btn active" data-pane="pane-cultivate"><span class="ico">修</span>Cultivate</button>
+        <button class="tabbar-btn" data-pane="pane-world"><span class="ico">界</span>World</button>
+        <button class="tabbar-btn" data-pane="pane-bag"><span class="ico">囊</span>Bag</button>
+      </nav>
     </section>
   </main>
 

@@ -65,3 +65,11 @@ Decisions agreed with the owner, to build into later milestones.
 ## Root upgrades (agreed Oct 29 2026, not built yet)
 - Spirit roots can be upgraded through extremely rare items or encounters.
 - A lucky player might upgrade once; it must not be possible to keep climbing all the way to Mutant.
+
+## World & exploring (Milestone 3, built)
+- 5 placeholder continents × 5 regions, each region with a danger level 1–10. Everyone starts in Green Bamboo Village.
+- Travel takes time (test speed: 30s same continent, 3 min other continent); no exploring while travelling.
+- Exploring costs stamina (100 max, regenerates over time). Outcomes: qi, herbs, spirit stones, beast fights (win/lose), nothing, chance encounters (pills, dew), very rare encounters (big qi, legendary fruit).
+- Harder regions (danger above your realm) give more but beasts are more likely to beat you.
+- Items: materials (for future crafting) and consumables. Pills give qi but add temporary toxicity; overflow past 100 turns half the excess into permanent toxicity. App warns before overflowing.
+- Toxicity slows cultivation: temporary up to −50%, permanent up to −67%.
