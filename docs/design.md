@@ -152,3 +152,9 @@ Decisions agreed with the owner, to build into later milestones.
 - At the top of a tier you need a qualified trainer to break into the next tier.
 - NPC masters: paid, teach only the lowest quality.
 - Player masters (direct pupil): teach an art/skill starting 2 tiers below their own (High master → starts you at Low 26; Peak master → Mid 51, the highest possible start). Can help a pupil break through up to one tier below their own. Can also help the pupil's cultivation.
+
+## Layout (owner request)
+- Hub style like the owner's reference game: Home shows cultivation progress and key numbers, with big buttons into each section.
+- Character screen: overview of the character, with buttons into Stats, Skills, Arts, Cultivation Styles (placeholders until built).
+- World: region + Explore, with buttons into Travel and Cultivators nearby.
+- Bottom bar: Home, Character, World, Sect, Bag.

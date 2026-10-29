@@ -395,3 +395,26 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .legend { margin: 10px 0 0; text-align: center; }
 .fight-title { font-family: 'Cinzel', serif; color: var(--gold-2); margin: 0 0 6px !important; letter-spacing: .04em; }
 #btn-look { flex: 0 0 auto; }
+
+/* Hub layout */
+.tabbar { grid-template-columns: repeat(5, 1fr); padding-left: 6px; padding-right: 6px; }
+.tabbar-btn { font-size: .68rem; }
+.quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.qtile { appearance: none; font: inherit; text-align: left; color: var(--text); display: grid; gap: 4px; padding: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); min-width: 0; }
+.qtile.link { cursor: pointer; }
+.q-label { font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.q-val { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-val.stone { color: #9fd0ff; } .q-val.stam { color: #8fc0ff; } .q-val.loc { color: var(--jade); font-family: 'Inter', sans-serif; font-size: .82rem; font-weight: 600; white-space: normal; line-height: 1.25; }
+.hub { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.hub.two { grid-template-columns: 1fr 1fr; }
+.hub-btn { position: relative; appearance: none; font: inherit; font-size: .82rem; font-weight: 600; letter-spacing: .03em; color: var(--text); display: grid; justify-items: center; align-content: center; gap: 6px; padding: 16px 6px; min-height: 96px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); cursor: pointer; text-align: center; }
+.hub-btn:active { transform: scale(.97); }
+.hub-btn .h-ico { font-family: serif; font-size: 1.7rem; line-height: 1; color: var(--gold-2); text-shadow: 0 0 18px rgba(240,212,138,0.35); }
+.hub-btn small { font-size: .65rem; color: var(--muted); font-weight: 500; }
+.hub-btn.soon-btn { opacity: .55; cursor: default; }
+.hub-btn.soon-btn .h-ico { color: var(--muted); text-shadow: none; }
+.hub-badge { position: absolute; top: 8px; right: 8px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: var(--danger); color: #fff; font-size: .7rem; font-weight: 700; display: grid; place-items: center; }
+.hub-badge[hidden] { display: none; }
+.sub[hidden], #world-main[hidden] { display: none; }
+.back { appearance: none; border: 0; background: none; color: var(--gold-2); font: inherit; font-weight: 600; padding: 4px 2px 12px; cursor: pointer; }
+#pane-character .orbs.small { margin: 12px 0 4px; }

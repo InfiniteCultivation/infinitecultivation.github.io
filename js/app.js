@@ -179,6 +179,7 @@
       }
       renderHome(ch);
       loadWorld().then(tick).catch(() => {});
+      loadDuels();
     } catch (e) {
       toast(friendly(e));
       show('screen-auth');
@@ -297,6 +298,8 @@
     } else chanceEl.hidden = true;
 
     renderTox();
+    $('#home-stamina').textContent = `${liveStamina()} / ${state.stamina_max}`;
+    $('#home-loc').textContent = state.travel ? `→ ${state.travel.name}` : (state.region ? state.region.name : '');
     if ($('#pane-world').classList.contains('active')) renderWorld();
   }
 
@@ -311,6 +314,9 @@
     $('#home-mult').textContent = `×${Number(ch.root_multiplier).toFixed(2)}`;
     $('#home-stones').textContent = fmt(ch.spirit_stones);
     $('#home-realm-num').textContent = `${ch.realm} of 10`;
+    $('#char-name').textContent = ch.name;
+    $('#char-realm').textContent = `${REALMS[ch.realm - 1]} · Stage ${ch.stage}`;
+    $('#char-sect').textContent = ch.sect ? ch.sect.name : 'None';
     orbs($('#home-orbs'), ch.spirit_root);
     tick();
     clearInterval(ticker);
@@ -318,7 +324,7 @@
       tick();
       loadNotes();
       tickCount += 1;
-      if (tickCount % 20 === 0 && $('#pane-world').classList.contains('active')) loadDuels();
+      if (tickCount % 20 === 0) loadDuels();
     }, 1000);
     loadNotes(true);
     if (!$('#screen-home').classList.contains('active')) show('screen-home');
@@ -1007,7 +1013,7 @@
     box.className = `card story ${data.won ? 'k-encounter' : 'k-beast_lost'}`;
     box.innerHTML = `<p class="fight-title">${data.won ? 'Victory' : 'Defeat'} · ${esc(data.opponent)}</p><p>${esc(data.story)}</p><div class="gains">${bits.join('')}</div>`;
     box.hidden = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showSub(null);
     renderHome(data.character);
     loadOpponents();
   }
@@ -1022,6 +1028,9 @@
     ul.innerHTML = '';
     const total = d.incoming.length + d.outgoing.length;
     $('#duels-card').hidden = total === 0;
+    const hb = $('#hub-duels');
+    hb.hidden = d.incoming.length === 0;
+    hb.textContent = d.incoming.length;
     d.incoming.forEach((x) => {
       ul.appendChild(personRow(`<strong>${esc(x.name)} challenges you</strong>
         <span class="muted small-text">${REALMS[x.realm - 1]} ${x.stage} · ${x.bet ? `${fmt(x.bet)} stones each` : 'no bet'} · <span class="odds o-${x.odds.toLowerCase()}">${x.odds}</span></span>`, [
@@ -1033,7 +1042,7 @@
           box.innerHTML = `<p class="fight-title">Duel ${r.won ? 'won' : 'lost'} · ${esc(r.opponent)}</p><p>${esc(r.story)}</p>
             ${r.bet ? `<div class="gains"><span class="gain ${r.won ? 'stone' : 'bad'}">${r.won ? '+' : '−'}${fmt(r.won ? r.bet * 2 : r.bet)} spirit stones</span></div>` : ''}`;
           box.hidden = false;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          showSub(null);
           renderHome(r.character); renderDuels(r.duels);
         }),
         smallBtn('Decline', 'ghost', async () => { const r = await sectCall('respond_duel', { p_duel: x.id, p_accept: false }); if (r) renderDuels(r.duels); })
@@ -1050,19 +1059,31 @@
   $('#btn-look').addEventListener('click', loadOpponents);
 
   // ---------- Tabs ----------
-  function showPane(id) {
+  // Sub-pages inside the World tab (Travel, Cultivators nearby).
+  function showSub(sub) {
+    $('#world-main').hidden = !!sub;
+    document.querySelectorAll('#pane-world .sub').forEach((x) => { x.hidden = x.id !== sub; });
+    window.scrollTo(0, 0);
+    if (sub === 'sub-nearby' && !$('#opp-list').children.length) loadOpponents();
+  }
+
+  function showPane(id, sub) {
     document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('active', p.id === id));
     document.querySelectorAll('.tabbar-btn').forEach((b) => b.classList.toggle('active', b.dataset.pane === id));
     window.scrollTo(0, 0);
     if (id === 'pane-world') {
-      Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
-      loadDuels();
       $('#opp-list').innerHTML = '';
       $('#btn-look').textContent = 'Look for opponents';
+      showSub(sub || null);
+      Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
+      loadDuels();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
   }
+  document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.go, b.dataset.sub)));
+  document.querySelectorAll('#world-main [data-sub]').forEach((b) => b.addEventListener('click', () => showSub(b.dataset.sub)));
+  document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => showSub(null)));
   document.querySelectorAll('.tabbar-btn').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.pane)));
 
   // Re-check with the server when the app comes back to the screen.
