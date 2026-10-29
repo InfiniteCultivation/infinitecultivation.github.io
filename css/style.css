@@ -194,7 +194,7 @@ input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(214,178,94,0
 @keyframes flashfail { 0%, 100% { transform: none; } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
 
 /* Milestone 3: tabs, world, bag, toxicity */
-#screen-home { padding-bottom: 84px; }
+#screen-home { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 .pane { display: none; }
 .pane.active { display: block; animation: fade .25s ease; }
 
@@ -435,7 +435,7 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .tab-dot[hidden] { display: none; }
 
 /* Chat */
-.chat-card { display: flex; flex-direction: column; height: calc(100dvh - 200px); min-height: 360px; padding-bottom: 12px; }
+.chat-card { display: flex; flex-direction: column; height: calc(100dvh - 210px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 320px; padding-bottom: 12px; }
 .chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 6px 2px; margin: 6px 0 10px; }
 .msg { max-width: 82%; align-self: flex-start; background: rgba(0,0,0,0.28); border-radius: 12px 12px 12px 4px; padding: 7px 10px; }
 .msg.me { align-self: flex-end; background: rgba(214,178,94,0.16); border-radius: 12px 12px 4px 12px; }
