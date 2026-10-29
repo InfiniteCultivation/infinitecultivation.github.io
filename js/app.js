@@ -1070,17 +1070,41 @@
   async function loadOpponents() {
     const btn = $('#btn-look');
     btn.disabled = true; btn.textContent = 'Searching…';
-    const { data, error } = await sb.rpc('look_for_opponents');
+    const [{ data, error }, npc] = await Promise.all([sb.rpc('look_for_opponents'), sb.rpc('npcs_here')]);
     btn.disabled = false; btn.textContent = 'Look again';
     if (error) return toast(friendly(error));
-    renderOpponents(data || []);
+    renderOpponents(data || [], (npc && npc.data) || []);
   }
 
-  function renderOpponents(list) {
+  const TEMPER = { friendly: ['Friendly', 'qi'], neutral: ['Neutral', ''], hostile: ['Hostile', 'bad'] };
+  function renderOpponents(list, npcs) {
     const ul = $('#opp-list');
     ul.innerHTML = '';
-    $('#opp-note').textContent = list.length ? '' : `Nobody else is in ${state.region.name} right now.`;
-    $('#opp-note').hidden = !list.length ? false : true;
+    npcs = npcs || [];
+    $('#opp-note').textContent = list.length || npcs.length ? '' : `Nobody else is in ${state.region.name} right now.`;
+    $('#opp-note').hidden = !!(list.length || npcs.length);
+    npcs.forEach((n) => {
+      const t = TEMPER[n.temperament];
+      const btns = [];
+      const atk = smallBtn('Attack', 'danger-btn ghost', function () { armed(this, 'Confirm attack', () => doAttackNpc(n)); });
+      atk.disabled = !!n.block;
+      btns.push(atk);
+      if (n.temperament !== 'hostile') {
+        const talk = smallBtn(n.talked ? 'Talked today' : 'Talk', 'ghost', async () => {
+          const r = await sectCall('talk_npc', { p_npc: n.id });
+          if (!r) return;
+          toast(r.gift ? `${r.message} ${r.gift}` : r.message);
+          renderHome(r.character);
+          talk.disabled = true; talk.textContent = 'Talked today';
+        });
+        talk.disabled = n.talked;
+        btns.push(talk);
+      }
+      ul.appendChild(personRow(`<strong>${esc(n.name)}</strong>
+        <div class="tags"><span class="npc-tag">${esc(n.title)}</span><span class="gain ${t[1]} tmp">${t[0]}</span><span class="odds o-${n.odds.toLowerCase()}">${n.odds}</span></div>
+        <span class="muted small-text">${REALMS[n.realm - 1]} ${n.stage} · wandering cultivator</span>
+        ${n.block ? `<span class="muted small-text block">${esc(n.block)}</span>` : ''}`, btns));
+    });
     list.forEach((o) => {
       const sect = o.sect ? `<span class="rel r-${o.relation}">${REL_MARK[o.relation]}${esc(o.sect)}</span>` : '<span class="rel r-none">No sect</span>';
       const warn = o.relation === 'mine' ? '<span class="warn-tag">Same sect</span>' : o.relation === 'ally' ? '<span class="warn-tag">Ally</span>' : '';
@@ -1153,6 +1177,15 @@
       <span class="small-text">${esc(x.label)}</span><span class="muted small-text">${x.fee ? `${fmt(x.fee)} stones held` : 'No fee'}</span>`, [
       smallBtn('Cancel', 'ghost', async () => { const r = await sectCall('cancel_master_request', { p_request: x.id }, 'Request withdrawn.'); if (r) { renderGuidance(r); try { renderHome(await loadCharacter()); } catch (e) { /* */ } } })
     ])));
+  }
+
+  async function doAttackNpc(n) {
+    const { data, error } = await sb.rpc('attack_npc', { p_npc: n.id });
+    if (error) return toast(friendly(error));
+    showSub(null);
+    renderHome(data.character);
+    $('#opp-list').innerHTML = '';
+    openBattle(data.battle, `You challenge ${data.opponent}!`);
   }
 
   async function doAttack(o) {
@@ -2147,7 +2180,7 @@
     stopBattle();
     const me = v.sides[v.me - 1];
     const foe = v.sides[2 - v.me];
-    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : 'Ambush';
+    const kindName = v.kind === 'monster' ? 'Beast encounter' : v.kind === 'duel' ? 'Duel' : v.kind === 'npc' ? 'Wandering cultivator' : 'Ambush';
     $('#bt-title').textContent = `${kindName} · Round ${Math.max(1, v.round)}`;
     $('#bt-me').innerHTML = fighterHtml(me, true);
     $('#bt-foe').innerHTML = fighterHtml(foe, false);
@@ -2159,7 +2192,7 @@
 
     // the first-turn choice when a beast jumps you
     const ch = $('#bt-choice');
-    ch.hidden = !(active && v.kind === 'monster' && !v.auto && !bChoiceSeen[v.id] && v.turn <= 2);
+    ch.hidden = !(active && (v.kind === 'monster' || v.kind === 'npc') && !v.auto && !bChoiceSeen[v.id] && v.turn <= 2);
     if (!ch.hidden) $('#bt-choice-text').textContent = `${bIntro || 'A beast attacks!'} Fight it turn by turn, or let instinct take over?`;
 
     // action panel
@@ -2255,6 +2288,7 @@
     if (r.qi_lost > 0) bits.push(`<span class="gain bad">−${fmt(r.qi_lost)} qi</span>`);
     if (r.stones > 0) bits.push(`<span class="gain stone">+${fmt(r.stones)} spirit stones</span>`);
     if (r.item_name) bits.push(`<span class="gain item">+1 ${esc(r.item_name)}</span>`);
+    if (r.stones_lost > 0) bits.push(`<span class="gain bad">−${fmt(r.stones_lost)} spirit stones</span>`);
     if (v.kind === 'attack' && r.effect_pct != null) {
       const pct = v.me === 1 ? r.effect_pct : null;
       if (pct != null) bits.push(`<span class="gain ${pct > 0 ? 'qi' : 'bad'}">${pct > 0 ? '+' : ''}${pct}% cultivation for ${r.effect_min} min</span>`);

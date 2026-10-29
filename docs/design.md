@@ -261,3 +261,10 @@ Decisions agreed with the owner, to build into later milestones.
 - Player masters (World › Cultivators nearby › Seek guidance; both in the same region): a master can break a pupil through a tier if the master's own tier is at least two above the pupil's current tier (High master → pupil Low→Mid). A master with a skill/art at Mid or higher can teach it; the pupil starts two tiers below the master. Class/profession arts can only be taught to that class/profession.
 - The pupil offers a fee, held until the master answers (returned on decline/cancel/expiry after 24h). Requests show in World › Masters & pupils and as notifications.
 - Peak cannot be reached through masters (reserved for special events/realms).
+
+## Step 14: NPC wandering cultivators (built)
+- 69 NPCs (3 per wild region: friendly, neutral, hostile) with a title, class, root, realm near the region's danger, and a purse of stones.
+- Each game day an NPC may drift to a nearby region on the same continent (danger within 2), sometimes gains a stage, and their purse refills a little.
+- Shown in World › Cultivators nearby. Friendly/neutral: Talk once per day (rumours; friendly ones sometimes gift stones or an item). Anyone can be attacked (15 stamina). Hostile ones may ambush you while exploring (30% of encounters in their region).
+- NPCs fight with their class's arts on autopilot. Beat one: +10% stage qi and half their purse; they recover for 3 hours. Lose: −5% qi, they take 5% of your stones, you wake in town.
+- Later: NPC sects, NPC masters, admin-triggered events.

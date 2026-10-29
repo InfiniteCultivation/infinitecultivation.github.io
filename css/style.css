@@ -593,3 +593,5 @@ body:has(#screen-home.active) .tabbar { display: grid; }
 .pip { width: 18px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); }
 .pip.on { background: linear-gradient(90deg, var(--gold), var(--gold-2)); }
 .up-now { color: #9fe3c8; display: block; }
+.npc-tag { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; color: #c9d3e6; background: rgba(150,170,210,0.14); }
+.gain.tmp { font-size: .68rem; padding: 2px 8px; }
