@@ -44,6 +44,7 @@ Decisions agreed with the owner, to build into later milestones.
 - Bonuses stack.
 
 ## Pacing target (agreed Oct 29 2026)
+- Passive target (owner, Oct 29 evening): the WORST root (Mixed ×0.8), cultivating nonstop with full daily seclusion and no fighting, reaches the peak in about 30 days. Applied: qi_rate × 0.2165. Average Mixed ×1.0 ≈ 24 days, Human ×1.2 ≈ 20, Earth ×1.5 ≈ 16, Heavenly ×2.0 ≈ 12, Mutant ×2.2 ≈ 11. Players should not wait longer than that to be able to reincarnate (reincarnation: design pending).
 - Absolute best case (best low-toxicity items, very high-level elder, constant fighting vs players/NPCs): about 2 weeks to the peak. Everyone else takes longer.
 
 ## Things to do besides fighting
