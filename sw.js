@@ -1,5 +1,5 @@
 // Offline support. Bump VERSION whenever app files change so phones pick up the update.
-const VERSION = 'v24';
+const VERSION = 'v25';
 const CACHE = `cultivation-${VERSION}`;
 const SHELL = [
   './',
