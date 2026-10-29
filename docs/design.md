@@ -254,3 +254,10 @@ Decisions agreed with the owner, to build into later milestones.
 - Upgrade points: one per stage advanced (stage index − 1). Rank N of a node costs N points; 5 ranks each; permanent (reset items later).
 - Nodes: Flowing Meridians (+3% cultivation speed per rank, shown as a permanent effect), Iron Constitution (+5% max health), Boundless Sea of Qi (+5% max energy), Endless Vigor (+5 max stamina).
 - Later: longer seclusion / cultivation sessions, sect trees, Divine Realm point sources.
+
+## Step 13: masters & pupils, NPC trainers (built)
+- Tiers: Early 1–25, Low 26–50, Mid 51–75, High 76–99, Peak 100 (caps 25/50/75/99/100) for skills, arts, class and profession.
+- NPC trainers: any town trainer does Early → Low (250 stones); the Grand Elder in the Imperial Capital does Low → Mid (2,000). Beyond Mid only player masters. Arts now have breakthroughs too.
+- Player masters (World › Cultivators nearby › Seek guidance; both in the same region): a master can break a pupil through a tier if the master's own tier is at least two above the pupil's current tier (High master → pupil Low→Mid). A master with a skill/art at Mid or higher can teach it; the pupil starts two tiers below the master. Class/profession arts can only be taught to that class/profession.
+- The pupil offers a fee, held until the master answers (returned on decline/cancel/expiry after 24h). Requests show in World › Masters & pupils and as notifications.
+- Peak cannot be reached through masters (reserved for special events/realms).

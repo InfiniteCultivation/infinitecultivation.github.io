@@ -1103,10 +1103,56 @@
           `Challenge sent to ${o.name}${amount ? ` for ${fmt(amount)} stones` : ''}. They have 10 minutes to answer.`);
         if (d) { renderDuels(d); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
       });
-      box.append(atk, bet, duel);
+      const guide = smallBtn('Seek guidance', 'ghost', () => openGuidance(o));
+      box.append(atk, bet, duel, guide);
       li.appendChild(box);
       ul.appendChild(li);
     });
+  }
+
+  // ---------- Masters ----------
+  async function openGuidance(o) {
+    const d = await sectCall('master_options', { p_master: o.id });
+    if (!d) return;
+    const card = $('#guide-card');
+    card.hidden = false;
+    $('#guide-title').textContent = `Seek guidance from ${d.master}`;
+    const ul = $('#guide-list');
+    ul.innerHTML = '';
+    if (!d.options.length) {
+      ul.innerHTML = `<li class="empty">${esc(d.master)} cannot help you right now. A master can break you through a tier only if they are at least two tiers above it, and can teach skills or arts they have at Mid tier or higher.</li>`;
+    }
+    d.options.forEach((x) => {
+      const fee = document.createElement('input');
+      fee.type = 'number'; fee.min = '0'; fee.inputMode = 'numeric'; fee.placeholder = 'Fee'; fee.className = 'bet-input';
+      const ask = smallBtn('Ask', 'primary', async () => {
+        const amount = Math.max(0, parseInt(fee.value || '0', 10) || 0);
+        const r = await sectCall('request_master', { p_master: o.id, p_kind: x.kind, p_target: x.target, p_action: x.action, p_fee: amount },
+          `Request sent to ${d.master}${amount ? ` with ${fmt(amount)} stones (returned if they decline)` : ''}.`);
+        if (r) { renderGuidance(r); card.hidden = true; try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+      });
+      ul.appendChild(personRow(`<strong>${esc(x.label)}</strong>`, [fee, ask]));
+    });
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('#guide-close').addEventListener('click', () => { $('#guide-card').hidden = true; });
+  async function loadGuidance() {
+    const { data } = await sb.rpc('my_master_requests');
+    if (data) renderGuidance(data);
+  }
+  function renderGuidance(d) {
+    const ul = $('#mreq-list');
+    ul.innerHTML = '';
+    $('#mreq-card').hidden = !(d.incoming.length + d.outgoing.length);
+    d.incoming.forEach((x) => ul.appendChild(personRow(`<strong>${esc(x.pupil)} seeks your guidance</strong>
+      <span class="small-text">${esc(x.label)}</span><span class="muted small-text">${x.fee ? `Offers ${fmt(x.fee)} spirit stones` : 'No fee offered'}</span>`, [
+      smallBtn('Accept', 'primary', async () => { const r = await sectCall('respond_master', { p_request: x.id, p_accept: true }, `You guided ${x.pupil}.`); if (r) { renderGuidance(r); try { renderHome(await loadCharacter()); } catch (e) { /* */ } } }),
+      smallBtn('Decline', 'ghost', async () => { const r = await sectCall('respond_master', { p_request: x.id, p_accept: false }); if (r) renderGuidance(r); })
+    ])));
+    d.outgoing.forEach((x) => ul.appendChild(personRow(`<strong>Waiting for ${esc(x.master)}</strong>
+      <span class="small-text">${esc(x.label)}</span><span class="muted small-text">${x.fee ? `${fmt(x.fee)} stones held` : 'No fee'}</span>`, [
+      smallBtn('Cancel', 'ghost', async () => { const r = await sectCall('cancel_master_request', { p_request: x.id }, 'Request withdrawn.'); if (r) { renderGuidance(r); try { renderHome(await loadCharacter()); } catch (e) { /* */ } } })
+    ])));
   }
 
   async function doAttack(o) {
@@ -1250,6 +1296,8 @@
         const bt = smallBtn(`Breakthrough · ${fmt(d.breakthrough_cost)}`, 'primary', () => breakSkill(sk));
         bt.disabled = !d.in_town;
         btns.push(bt);
+      } else if (sk.level >= sk.tier_cap && sk.tier_cap === 50) {
+        btns.push(trainerBtn('skill', sk.id, 50, loadSkills));
       } else if (sk.level < sk.tier_cap) {
         const pr = smallBtn(practising ? 'Practising…' : 'Practise', practising ? 'ghost' : 'ghost', () => practise(sk));
         pr.disabled = practising || (state && modeNow() === 'seclusion');
@@ -1258,7 +1306,7 @@
       const li = personRow(`<strong>${esc(sk.name)}</strong>
         <div class="tags"><span class="slot-tag">${TYPE_LABEL[sk.slot_type]}</span>${sk.element ? `<span class="el-tag">${sk.element}</span>` : ''}${sk.equipped ? '<span class="lead">Equipped</span>' : ''}</div>
         <div class="sk-bar"><div class="meter-track thin"><div class="meter-fill sk" style="width:${pct}%"></div></div><span class="muted small-text">${sk.tier} · ${sk.level} / ${sk.tier_cap}</span></div>
-        <span class="muted small-text">${esc(sk.description)}${sk.can_breakthrough && !d.in_town ? ' · Find a trainer in a town to break through.' : ''}${sk.level >= sk.tier_cap && sk.tier_cap > 25 ? ' · Needs a master to go further.' : ''}</span>`, btns);
+        <span class="muted small-text">${esc(sk.description)}${sk.can_breakthrough && !d.in_town ? ' · Find a trainer in a town to break through.' : ''}${sk.level >= sk.tier_cap && sk.tier_cap > 25 && sk.tier_cap < 100 ? ` · ${trainerNote(sk.tier_cap)}` : ''}</span>`, btns);
       ul.appendChild(li);
     });
   }
@@ -1680,6 +1728,23 @@
     renderAuctions();
   });
 
+  // NPC trainers beyond the town: the Grand Elder (Imperial Capital) takes Low -> Mid.
+  const ELDER_REGION = 21;
+  function trainerBtn(kind, target, cap, after) {
+    const town = cap === 25;
+    const here = town ? !!(state && state.region && state.region.is_town) : !!(state && state.region_id === ELDER_REGION);
+    const b = smallBtn(town ? 'Breakthrough · 250' : 'Grand Elder · 2,000', 'primary', async () => {
+      const r = await sectCall('trainer_breakthrough', { p_kind: kind, p_target: target }, 'The breakthrough succeeds — a new tier opens.');
+      if (r) { try { renderHome(await loadCharacter()); } catch (e) { /* */ } after(); }
+    });
+    b.disabled = !here;
+    b.title = town ? 'Any town trainer' : 'Only in the Imperial Capital';
+    return b;
+  }
+  function trainerNote(cap) {
+    return cap === 25 ? 'Find a trainer in any town to break through.' : cap === 50 ? 'The Grand Elder in the Imperial Capital, or a master, can take you to Mid.' : 'Only a player master can take you further.';
+  }
+
   // ---------- Arts ----------
   const ART_TYPE = { strike: 'Strike', technique: 'Technique', reaction: 'Reaction', ultimate: 'Ultimate' };
   let artsData = null;
@@ -1722,6 +1787,7 @@
     const free = [1, 2, 3, 4, 5, 6].find((n) => !d.arts.some((x) => x.slot === n));
     d.arts.forEach((a) => {
       const btns = [];
+      if (a.level >= a.tier_cap && a.tier_cap <= 50) btns.push(trainerBtn('art', a.id, a.tier_cap, loadArts));
       if (a.slot == null) {
         const b = smallBtn(free ? 'Equip' : 'Slots full', 'primary', () => equipArt(a.id, free));
         b.disabled = !free;
@@ -1729,7 +1795,7 @@
       }
       ul.appendChild(personRow(`<strong>${esc(a.name)}</strong>
         <div class="tags">${artTags(a)}<span class="lvl">Lv ${a.level} · ${esc(a.tier)}</span>${a.slot ? `<span class="lead">Slot ${a.slot}</span>` : ''}</div>
-        <span class="muted small-text">${esc(a.description || '')}</span>`, btns));
+        <span class="muted small-text">${esc(a.description || '')}${a.level >= a.tier_cap && a.tier_cap < 100 ? ` · ${trainerNote(a.tier_cap)}` : ''}</span>`, btns));
     });
   }
   async function equipArt(id, slot) {
@@ -1868,7 +1934,8 @@
       bt.appendChild(b);
       if (!d.in_town) bt.insertAdjacentHTML('beforeend', '<p class="muted small-text">Visit a town to find a trainer.</p>');
     } else if (d.level_exact >= d.cap && d.cap >= 50) {
-      bt.innerHTML = '<p class="muted small-text">Town trainers only teach up to Low tier. A master will be needed (coming later).</p>';
+      bt.innerHTML = `<p class="muted small-text">${trainerNote(d.cap)}</p>`;
+      if (d.cap === 50) bt.appendChild(trainerBtn('class', d.class, 50, loadClass));
     }
     const ch = $('#cl-change');
     ch.innerHTML = '';
@@ -1932,7 +1999,8 @@
       bt.appendChild(b);
       if (!d.in_town) bt.insertAdjacentHTML('beforeend', '<p class="muted small-text">Visit a town to find a trainer.</p>');
     } else if (d.level_exact >= d.cap && d.cap >= 50 && !d.at_ceiling) {
-      bt.innerHTML = '<p class="muted small-text">Town trainers only teach up to Low tier. A master will be needed (coming later).</p>';
+      bt.innerHTML = `<p class="muted small-text">${trainerNote(d.cap)}</p>`;
+      if (d.cap === 50) bt.appendChild(trainerBtn('profession', d.profession, 50, loadProfession));
     }
 
     renderProfChange();
@@ -2250,6 +2318,7 @@
       showSub(sub || null);
       Promise.all([loadWorld(), loadControl()]).then(() => { renderRegions(); renderWorld(); }).catch((e) => toast(friendly(e)));
       loadDuels();
+      loadGuidance();
     }
     if (id === 'pane-sect') Promise.all([loadWorld(), loadControl()]).then(loadSect).catch((e) => toast(friendly(e)));
     if (id === 'pane-bag') { const w = $('#bag-warning'); if (w) w.remove(); loadBag(); }
