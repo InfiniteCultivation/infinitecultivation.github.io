@@ -429,14 +429,26 @@
 
   async function loadWorld() {
     if (world) return world;
-    const [c, r] = await Promise.all([
+    const [c, r, it] = await Promise.all([
       sb.from('continents').select('*').order('sort'),
-      sb.from('regions').select('id,continent_id,name,danger,description,is_town').order('continent_id').order('danger').order('id')
+      sb.from('regions').select('id,continent_id,name,danger,description,is_town,specialty,specialty_item,tax_mult').order('continent_id').order('danger').order('id'),
+      sb.from('items').select('id,name')
     ]);
     if (c.error || r.error) throw (c.error || r.error);
+    const names = Object.fromEntries((it.data || []).map((i) => [i.id, i.name]));
+    r.data.forEach((x) => { x.item_name = names[x.specialty_item] || null; });
     world = { continents: c.data, regions: r.data };
     return world;
   }
+
+  // What makes a region worth holding.
+  function specialtyTag(r) {
+    if (!r) return '';
+    if (r.specialty === 'stones') return `<span class="spec s-stones">◉ Spirit vein · ×${Number(r.tax_mult)} taxes</span>`;
+    if (r.specialty === 'item' && (r.item_name || r.item)) return `<span class="spec s-item">⚒ ${esc(r.item_name || r.item)}</span>`;
+    return '';
+  }
+  function regionInfo(id) { return world ? world.regions.find((x) => x.id === id) : null; }
 
   function renderWorld() {
     if (!state || !state.region) return;
@@ -478,6 +490,10 @@
     }
     const tag = $('#world-town');
     if (tag) tag.hidden = !reg.is_town;
+    const specEl = $('#world-spec');
+    const ri = regionInfo(reg.id);
+    const specHtml = specialtyTag(ri);
+    if (specEl.dataset.html !== specHtml) { specEl.innerHTML = specHtml; specEl.dataset.html = specHtml; }
     const ctlEl = $('#world-ctl');
     const ctl = control[String(reg.id)];
     ctlEl.hidden = !ctl;
@@ -512,7 +528,7 @@
       const li = document.createElement('li');
       li.className = here ? 'here' : '';
       const ctl = control[String(r.id)];
-      const townTag = (r.is_town ? '<span class="town-tag">Town · seclusion</span>' : '') + (ctl ? ctlTag(ctl) : '');
+      const townTag = (r.is_town ? '<span class="town-tag">Town · seclusion</span>' : '') + specialtyTag(r) + (ctl ? ctlTag(ctl) : '');
       li.innerHTML = `<div class="r-main"><strong>${r.name}</strong><div class="tags"><span class="danger ${di.cls}">Danger ${r.danger} · ${di.label}</span>${townTag}</div></div>`;
       const b = document.createElement('button');
       b.className = 'btn ghost small';
@@ -548,6 +564,7 @@
     if (data.qi_lost > 0) bits.push(`<span class="gain bad">−${fmt(data.qi_lost)} qi</span>`);
     if (data.stones > 0) bits.push(`<span class="gain stone">+${fmt(data.stones)} spirit stones</span>`);
     if (data.item_name) bits.push(`<span class="gain item">+1 ${data.item_name}</span>`);
+    if (data.bonus_item) bits.push(`<span class="gain item">+1 ${esc(data.bonus_item)} (local specialty)</span>`);
     if (data.extra_cost > 0) bits.push(`<span class="gain bad">−${data.extra_cost} extra stamina</span>`);
     box.className = `card story k-${data.kind}`;
     const gift = data.gift ? `<p class="gift">✿ ${esc(data.gift)}</p>` : '';
@@ -752,7 +769,9 @@
     rg.innerHTML = '';
     if (!s.regions.length) rg.innerHTML = '<li class="empty">Your sect controls no land yet.</li>';
     s.regions.forEach((r) => {
-      rg.appendChild(personRow(`<strong>${esc(r.name)}</strong><span class="muted small-text">Danger ${r.danger} · +${fmt(r.danger * 10)} stones / hour</span>`,
+      const tribute = r.specialty === 'item' ? ` · 1 ${esc(r.item)} every ${s.tribute_hours}h` : '';
+      rg.appendChild(personRow(`<strong>${esc(r.name)}</strong><div class="tags">${specialtyTag(r)}</div>
+        <span class="muted small-text">Danger ${r.danger} · +${fmt(r.danger * Number(r.tax_mult) * s.tax_per_danger_hour)} stones / hour${tribute}</span>`,
         leader ? [smallBtn('Give up', 'ghost', function () {
           armed(this, 'Confirm', async () => { const d = await sectCall('release_region', { p_region: r.id }, `${r.name} released.`); if (d) { await loadControl(); renderMySect(d); } });
         })] : []));
@@ -771,7 +790,10 @@
       else if (s.regions.length >= s.max_regions) p.textContent = `Your sect can control ${s.max_regions} regions for now.`;
       else {
         const cost = here.danger * s.claim_cost_per_danger;
-        p.textContent = `Claim the region you are standing in. Paid from the treasury. Its people will pay taxes, and disciples exploring there may receive gifts.`;
+        const ri = regionInfo(here.id);
+        const perk = ri && ri.specialty === 'stones' ? ' It sits on a spirit vein: taxes here are doubled.'
+          : ri && ri.specialty === 'item' ? ` It sends ${ri.item_name} to your storehouse as tribute.` : '';
+        p.textContent = `Claim the region you are standing in. Paid from the treasury. Its people will pay taxes, and disciples exploring there may receive gifts.${perk}`;
         const b = smallBtn(`Claim ${here.name} · ${fmt(cost)} stones`, 'primary wide', async () => {
           const d = await sectCall('claim_region', {}, `${here.name} is now yours.`);
           if (d) { await loadControl(); renderMySect(d); }
@@ -788,7 +810,53 @@
     renderMembersAndAllies(s, leader, officer);
   }
 
+  function renderStoreAndMove(s, leader, officer) {
+    // storehouse
+    $('#store-note').textContent = s.storage.length
+      ? (officer ? 'Tribute from your territory. Hand items out to disciples.' : 'Tribute from your territory. The leader and elders hand these out.')
+      : 'Empty. Regions that produce materials send tribute here.';
+    const ul = $('#sect-storage');
+    ul.innerHTML = '';
+    s.storage.forEach((it) => {
+      const btns = [];
+      if (officer) {
+        const sel = document.createElement('select');
+        sel.className = 'mini-select';
+        sel.innerHTML = s.members.map((m) => `<option value="${m.id}">${esc(m.name)}${m.id === s.my_id ? ' (you)' : ''}</option>`).join('');
+        btns.push(sel);
+        btns.push(smallBtn('Give 1', 'ghost', async () => {
+          const d = await sectCall('give_from_storage', { p_char: sel.value, p_item: it.id, p_qty: 1 }, `Gave 1 ${it.name}.`);
+          if (d) renderMySect(d);
+        }));
+      }
+      ul.appendChild(personRow(`<strong>${esc(it.name)} <span class="qty">×${it.qty}</span></strong><span class="rarity">${it.rarity}</span>`, btns));
+    });
+
+    // moving home
+    const mb = $('#move-box');
+    mb.innerHTML = '';
+    if (!leader || !state.region) return;
+    const here = state.region;
+    const p = document.createElement('p');
+    p.className = 'muted small-text claim-note';
+    const next = s.home_next_move ? new Date(s.home_next_move) : null;
+    if (here.id === s.home.id) { p.textContent = 'To move your sect, travel to the new region first. You can move once every 7 days.'; mb.appendChild(p); return; }
+    if (next && next.getTime() > serverNow()) {
+      p.textContent = `Your sect can move again on ${next.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}.`;
+      mb.appendChild(p); return;
+    }
+    const b = smallBtn(`Move home to ${here.name} · ${fmt(s.home_move_cost)} stones`, 'ghost wide', function () {
+      armed(this, 'Tap again to move — then 7 days before the next move', async () => {
+        const d = await sectCall('move_home', {}, `Your sect now calls ${here.name} home.`);
+        if (d) refreshAll();
+      });
+    });
+    b.disabled = s.treasury < s.home_move_cost || !!state.travel;
+    mb.appendChild(b);
+  }
+
   function renderMembersAndAllies(s, leader, officer) {
+    renderStoreAndMove(s, leader, officer);
     const ml = $('#sect-members');
     ml.innerHTML = '';
     s.members.forEach((m) => {

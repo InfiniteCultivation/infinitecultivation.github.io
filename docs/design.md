@@ -96,3 +96,10 @@ Decisions agreed with the owner, to build into later milestones.
 - Seclusion allowed at the sect's home with a ×1.2 bonus.
 - Alliances: leaders propose/accept/end. Map marks regions as yours (★), ally (◆), or another sect.
 - Leader must pass leadership before leaving; last member leaving disbands the sect and frees its land.
+
+## Region specialties & sect homes (built)
+- Every claimable region has a specialty: spirit-stone vein (taxes ×2) or a crafting material.
+- Material regions: anyone exploring there has a 20% bonus chance to find that material; the controlling sect gets 1 of it every 4 hours (test speed) into the sect storehouse. Leader/elders hand items out to members.
+- New materials: Spirit Iron Ore, Spirit Jade, Flame Crystal, Thunder Stone, Ancient Spirit Wood (plus existing herbs, cores, Frost Lotus).
+- Leader can move the sect home to the region they stand in: 200 treasury stones, once every 7 days; not into another (non-allied) sect's territory.
+- Many sects may share a home region for now; may need limits if the game gets crowded.
