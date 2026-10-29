@@ -42,3 +42,15 @@ Decisions agreed with the owner, to build into later milestones.
   - Can be reduced, or its clearing sped up, by chance encounters, extremely rare items, or an elder helping you.
 - Mentors: a mentor trains you; the boost and temporary bonus depend on the mentor's abilities.
 - Bonuses stack.
+
+## Pacing target (agreed Oct 29 2026)
+- Absolute best case (best low-toxicity items, very high-level elder, constant fighting vs players/NPCs): about 2 weeks to the peak. Everyone else takes longer.
+
+## Things to do besides fighting
+- Train skills: martial arts and magic arts.
+- Crafting (see professions).
+- Player-run tournaments: the creator picks 3 items from their own inventory as 1st/2nd/3rd prizes; players enter in-game; the game tracks the bracket and automatically gives the items to the winners.
+
+## Cultivation ceiling
+- Too much toxicity, or too weak a spirit root, can stop a character before the peak. The game tells them they have reached their limit.
+- Endgame roles at the limit: mentor lower-realm sect members, fight in tournaments and defend sect resources in sect wars, or hone a craft.
