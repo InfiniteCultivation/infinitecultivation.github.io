@@ -376,3 +376,10 @@ Decisions agreed with the owner, to build into later milestones.
 ## Step 26 — Guide & Settings (built)
 - Home › Guide: tabbed player guide (Start, Cultivation, Spirit roots, Combat, Classes & crafts, World, Sects & war, Realms & events, Rebirth). Keep it updated when mechanics change.
 - Home › Settings: text size, reduce motion, fight modes (beasts/players auto or manual), chat red dots, update message, sign out. Display settings are stored per device.
+
+## Step 27 — Realm openings (owner, Oct 29 evening)
+- Realms are not always open. Each game day every town rolls: Lesser 60% (10 h), Mystic 25% (8 h), Divine 6% (6 h), each opening at a random hour. Admin can open (town, tier, hours) or close realms.
+- Tiers: Lesser (anyone, 50 stones, common loot), Mystic (Foundation Establishment+, 200), Divine (Nascent Soul+, 1000, danger 5–8 — party advised).
+- Each opening: element theme (shapes beasts) and quality good/great/exceptional (better loot + find chance). Instances are per opening (people/PvP only within it). Closing casts everyone out with their loot.
+- Mystic openings notify players on that continent; Divine notifies everyone. Town shows Secret realms badge + rumors of realms open in other towns.
+- Physician: "Use on yourself" for Restoring Hands on its slot in Character › Arts. Vigor Infusion gives others stamina at a poor rate (0.3 stamina per energy at level 1), others only.

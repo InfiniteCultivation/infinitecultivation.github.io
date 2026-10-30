@@ -439,6 +439,16 @@
           <button class="btn ghost small" id="ad-announce-btn">Send announcement</button>
         </div>
         <div class="card">
+          <h4 class="card-title">Secret realms</h4>
+          <ul class="people" id="ad-realms"></ul>
+          <div class="ad-grid">
+            <label><span>Town</span><select class="mini-select" id="ad-rtown"></select></label>
+            <label><span>Realm</span><select class="mini-select" id="ad-rtier"><option value="lesser">Lesser</option><option value="mystic">Mystic</option><option value="divine">Divine</option></select></label>
+            <label><span>Open for</span><select class="mini-select" id="ad-rhours"><option value="1">1 hour</option><option value="3">3 hours</option><option value="6" selected>6 hours</option><option value="12">12 hours</option><option value="24">24 hours</option></select></label>
+          </div>
+          <button class="btn primary small" id="ad-ropen">Open realm</button>
+        </div>
+        <div class="card">
           <h4 class="card-title">Sects</h4>
           <ul class="people" id="ad-sects"></ul>
         </div>
@@ -728,7 +738,7 @@
             <div class="hub two">
               <button class="hub-btn" data-go="pane-market"><span class="h-ico">市</span>Market</button>
               <button class="hub-btn" id="btn-healer"><span class="h-ico">醫</span>Healer<small id="healer-note"></small></button>
-              <button class="hub-btn" data-sub="sub-realms"><span class="h-ico">秘</span>Secret realms</button>
+              <button class="hub-btn" data-sub="sub-realms"><span class="h-ico">秘</span>Secret realms<span class="hub-badge" id="hub-realms" hidden></span></button>
               <button class="hub-btn" data-sub="sub-tour"><span class="h-ico">擂</span>Tournaments<span class="hub-badge" id="hub-tour" hidden></span></button>
             </div>
           </div>

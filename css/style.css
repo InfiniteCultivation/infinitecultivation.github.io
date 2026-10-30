@@ -740,3 +740,4 @@ button.qtile { font: inherit; color: inherit; text-align: left; cursor: pointer;
 body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 .set-row { flex-direction: column; align-items: flex-start; }
 .set-row .chips { flex-wrap: wrap; }
+.rumor-head { margin-top: 14px; }

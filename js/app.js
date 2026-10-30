@@ -1375,6 +1375,15 @@
     if (!d) return;
     $('#ad-stats').innerHTML = [['Players', d.players], ['Banned', d.banned], ['Fights now', d.battles], ['In realms', d.in_realms]]
       .map(([l, v]) => `<div class="stat"><span class="stat-label">${l}</span><span class="stat-value">${v}</span></div>`).join('');
+    const rl = $('#ad-realms'); rl.innerHTML = '';
+    if (!d.realms.length) rl.innerHTML = '<li class="muted small-text">No realms open or scheduled.</li>';
+    d.realms.forEach((x) => {
+      const upcoming = new Date(x.opened_at).getTime() > serverNow();
+      rl.appendChild(personRow(`<strong>${esc(x.name)}</strong><span class="muted small-text">${esc(x.town)} · ${x.quality} · ${upcoming ? `opens in ${duration(secsLeft(x.opened_at))}` : `closes in ${duration(secsLeft(x.closes_at))} · ${x.inside} inside`}</span>`,
+        [smallBtn('Close', 'danger-btn ghost', function () { armed(this, 'Tap again', async () => { const r = await adCall('admin_close_realm', { p_opening: x.id }, 'Realm closed.'); if (r) loadAdmin(); }); })]));
+    });
+    const tsel = $('#ad-rtown');
+    if (!tsel.options.length) tsel.innerHTML = d.towns.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
     const ul = $('#ad-sects'); ul.innerHTML = '';
     d.sects.forEach((x) => {
       const inp = document.createElement('input'); inp.type = 'number'; inp.className = 'bet-input'; inp.value = x.treasury; inp.inputMode = 'numeric';
@@ -1408,6 +1417,10 @@
     if (!list.length) ul.innerHTML = '<li class="muted small-text">No one found.</li>';
   }
   $('#ad-q').addEventListener('input', adFilter);
+  $('#ad-ropen').addEventListener('click', async () => {
+    const r = await adCall('admin_open_realm', { p_town: Number($('#ad-rtown').value), p_tier: $('#ad-rtier').value, p_hours: Number($('#ad-rhours').value) }, 'Realm opened.');
+    if (r) loadAdmin();
+  });
   $('#ad-announce-btn').addEventListener('click', function () {
     const body = $('#ad-announce').value.trim();
     if (!body) return toast('Write the announcement first.');
@@ -1563,6 +1576,7 @@
   function renderRealm(d) {
     realmData = d;
     realmIn = !!d.run;
+    const hb = $('#hub-realms'); if (hb) { const n = (d.here || []).length; hb.hidden = !n; hb.textContent = n; }
     const al = $('#realm-alert');
     al.hidden = !d.run;
     if (d.run) {
@@ -1578,26 +1592,29 @@
       row.appendChild(smallBtn('Return to the realm', 'primary', () => showPane('pane-realm')));
       list.appendChild(row);
     } else {
-      list.insertAdjacentHTML('beforeend', '<p class="muted small-text">Hidden worlds full of rare treasures. Search their areas for loot, but guardian beasts and other cultivators prowl inside. Fall to a beast and everything you carry vanishes; fall to a cultivator and the victor keeps one treasure from you. You keep what you carry out through the gate. Gatherers search twice as fast and find more.</p>');
-      d.realms.forEach((r) => {
-        const cd = r.cooldown_until && secsLeft(r.cooldown_until) > 0;
-        const b = smallBtn(cd ? `Again in ${duration(secsLeft(r.cooldown_until))}` : `Enter (${fmt(r.cost)} stones)`, 'primary', function () {
+      list.insertAdjacentHTML('beforeend', '<p class="muted small-text">Secret realms open now and then inside towns and stay open for a few hours. Lesser realms are common, Mystic realms uncommon, Divine realms rare — and deadly, so bring a party. Each opening has its own character: an element that shapes its beasts, and a quality (good, great or exceptional) that improves its treasures. Fall to a beast and everything you carry vanishes; fall to a cultivator and the victor keeps one treasure. Only what you carry out through the gate is yours. Gatherers search faster and find more.</p>');
+      const QUAL = { good: ['Good', ''], great: ['Great', 'qi'], exceptional: ['Exceptional', 'item'] };
+      if (!d.here.length) list.insertAdjacentHTML('beforeend', '<p class="small-text"><strong>No secret realm is open here right now.</strong></p>');
+      d.here.forEach((r) => {
+        const b = smallBtn(`Enter (${fmt(r.cost)} stones)`, 'primary', function () {
           armed(this, 'Tap again to enter', async () => {
-            const res = await sectCall('enter_realm', { p_realm: r.id });
+            const res = await sectCall('enter_realm_at', { p_opening: r.id });
             if (res) { renderRealm(res); showPane('pane-realm'); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
           });
         });
-        b.disabled = !!r.why || cd;
+        b.disabled = !!r.why;
         list.appendChild(personRow(`<strong>${esc(r.name)}</strong>
-          <span class="muted small-text">Requires ${REALMS[r.min_realm - 1]} · enter from ${esc(r.where)} · one hour inside · once every 6 hours</span>
-          ${r.why && !r.why.startsWith('Requires') ? `<span class="muted small-text block">${esc(r.why)}</span>` : ''}`, [b]));
+          <div class="tags"><span class="gain ${QUAL[r.quality][1]} tmp">${QUAL[r.quality][0]}</span>${r.tier === 'divine' ? '<span class="warn-tag">Party advised</span>' : ''}</div>
+          <span class="muted small-text">Requires ${REALMS[r.min_realm - 1]} · closes in ${duration(secsLeft(r.closes_at))} · ${r.inside} inside · up to one hour per visit</span>
+          ${r.why ? `<span class="muted small-text block">${esc(r.why)}</span>` : ''}`, [b]));
       });
+      if (d.rumors.length) list.insertAdjacentHTML('beforeend', `<p class="eyebrow rumor-head">Rumors from other towns</p><ul class="war-log">${d.rumors.map((x) => `<li><strong>${esc(x.name)}</strong> at ${esc(x.town)} · closes in ${duration(secsLeft(x.closes_at))}</li>`).join('')}</ul>`);
       if (d.picks.length) { const box = document.createElement('div'); list.appendChild(box); picksHtml(d.picks, box); }
     }
     if (!d.run) return;
     // Realm pane
     const run = d.run;
-    $('#rl-name').textContent = run.name;
+    $('#rl-name').textContent = `${run.name}${run.quality && run.quality !== 'good' ? ` · ${run.quality}` : ''}`;
     $('#rl-area').textContent = run.area_name;
     $('#rl-meta').textContent = `${run.danger ? `Danger ${'✦'.repeat(run.danger)}` : 'Safe — no fighting at the gate'} · ${duration(Math.max(0, secsLeft(run.ends_at)))} left`;
     $('#rl-event').textContent = run.last_event || '';
@@ -2318,8 +2335,10 @@
       <h4>Raids</h4><p>Bandit sects sometimes invade your lands. Their raiders ambush your members in the wild. Defeat them all within 48 hours for loot, or they steal 15% of your treasury.</p>
       <h4>Sect wars</h4><p>A leader can declare war. The target may accept (calling allies — then the attacker may call as many) or decline and pay 5% of their treasury. After a 1-hour countdown the war lasts 48 hours: winning duels and ambushes against enemies takes their points (beating stronger foes is worth more); a side that starts no fight for an hour loses points; after fighting an enemy, towns turn you away for 5 minutes. The winner takes the stake — reparations or a region.</p>`],
     ['Realms & events', `<h3>Secret realms</h3>
-      <ul><li><strong>Mystic Realm</strong>: Foundation Establishment+, 200 stones, from any town. <strong>Divine Realm</strong>: Nascent Soul+, 1000 stones, from the Imperial Capital.</li>
-      <li>One hour inside, once every 6 hours. Move between areas — deeper is more dangerous and richer — and <strong>Search</strong> for rare treasures.</li>
+      <ul><li>Realms <strong>open by chance</strong> inside towns and stay open for a few hours. Check a town's <strong>Secret realms</strong> button — often none are open. You'll be notified when a Mystic Realm opens on your continent, and everyone hears when a Divine Realm opens.</li>
+      <li><strong>Lesser Realm</strong> (common): anyone, 50 stones. <strong>Mystic Realm</strong> (uncommon): Foundation Establishment+, 200 stones. <strong>Divine Realm</strong> (rare): Nascent Soul+, 1000 stones — very dangerous, go with a party.</li>
+      <li>Each opening has an element that shapes its beasts, and a quality — good, great or exceptional — that makes its treasures better.</li>
+      <li>Up to one hour per visit, once every 6 hours for each kind of realm. Move between areas — deeper is more dangerous and richer — and <strong>Search</strong> for treasures.</li>
       <li>Fall to a guardian beast and everything you carry vanishes. Fall to another cultivator and they keep one treasure from you. Only what you carry out through the gate is yours.</li></ul>
       <h3>Tournaments</h3>
       <p>Anyone can host from a town by putting up three prizes. Everyone is notified and has 10 minutes to reach that town and enter. Single-elimination matches are fought in the arena at full health with no injuries; prizes for 1st, 2nd and 3rd are paid automatically.</p>`],
@@ -2687,6 +2706,14 @@
       if (a) {
         const box = document.createElement('div');
         box.className = 'p-actions';
+        if (a.type === 'support' && a.id === 'restoring_hands') {
+          box.appendChild(smallBtn('Use on yourself', 'primary heal-btn', async () => {
+            const r = await sectCall('use_support_art', { p_art: a.id, p_target: state.id });
+            if (r) { toast(r.message); loadArts(); try { renderHome(await loadCharacter()); } catch (e) { /* */ } }
+          }));
+        } else if (a.type === 'support') {
+          li.querySelector('.p-main').insertAdjacentHTML('beforeend', '<span class="muted small-text">Use on others: World › Cultivators nearby › Support.</span>');
+        }
         if (i > 1) box.appendChild(smallBtn('↑', 'ghost', () => equipArt(a.id, i - 1)));
         if (i < 6) box.appendChild(smallBtn('↓', 'ghost', () => equipArt(a.id, i + 1)));
         box.appendChild(smallBtn('Remove', 'ghost', () => equipArt(a.id, null)));
@@ -2713,12 +2740,6 @@
     d.arts.forEach((a) => {
       const btns = [];
       if (a.level >= a.tier_cap && a.tier_cap <= 50) btns.push(trainerBtn('art', a.id, a.tier_cap, loadArts));
-      if (a.type === 'support' && a.slot != null && a.id === 'restoring_hands') {
-        btns.push(smallBtn('Heal yourself', 'ghost', async () => {
-          const r = await sectCall('use_support_art', { p_art: a.id, p_target: state.id });
-          if (r) { toast(r.message); loadArts(); }
-        }));
-      }
       if (a.slot == null && a.type === 'ultimate') {
         btns.push(smallBtn(ult ? 'Make my ultimate' : 'Equip as ultimate', 'primary', () => equipArt(a.id, 7)));
       } else if (a.slot == null) {
