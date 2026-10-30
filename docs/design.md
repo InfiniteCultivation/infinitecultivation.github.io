@@ -357,3 +357,10 @@ Decisions agreed with the owner, to build into later milestones.
 - Overview counts, player search, full character editor (realm/stage/qi/stones/stamina/points/roots/class/profession/toxicity/name/teleport), quick fixes (heal, end stuck fight, remove from realm, end seclusion), give/take items, message, ban (1h–permanent with reason) / unban, per-player history.
 - Global announcement (notification + global chat), sect treasury edit and raid trigger, admin action log.
 - Bans: banned players see a ban screen; every action is refused server-side.
+
+## Step 24 — Pacing v2, sealed roots, endless levels (owner, Oct 29 evening)
+- Target: nonstop cultivation (1-hour sessions all day + full 8 h seclusion), no fighting/items/master → reach Soul Formation (realm 5, halfway, where reincarnation opens) in ~30 days with the worst root, ~21 with the best. qi_rate factor 0.011857.
+- Root speed multipliers: Mixed-5 1.00, Mixed-4 1.07, Human 1.16, Earth 1.26, Heavenly 1.38, Mutant 1.52. Everyone cultivates at ×1.00 during Qi Condensation.
+- Spirit root (elements, grade, speed) is sealed until Foundation Establishment, so remaking characters reveals nothing.
+- After Immortal Ascension 10 you continue in Levels forever; each level needs peak qi × (1 + 0.1 × level).
+- Pending (asked owner): reincarnation (unlocks at Soul Formation; guaranteed % stat bonus = steps/10 capped at 10%, anti-loop "highest point" rule proposed; 3 random benefits per category — cultivation, class, profession, stats — pick 1 each), what resets, and root perks by grade/element (modest, not overpowered).

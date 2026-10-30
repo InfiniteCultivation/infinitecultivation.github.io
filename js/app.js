@@ -97,7 +97,7 @@
 
   function orbs(container, roots) {
     container.innerHTML = '';
-    roots.forEach((r, i) => {
+    (roots || []).forEach((r, i) => {
       const e = ELEMENTS[r] || { color: '#ccc', glyph: '?' };
       const d = document.createElement('div');
       d.className = 'orb';
@@ -328,8 +328,10 @@
     return t ? ` Nearest: ${t.name}.` : '';
   }
 
+  function stageName(realm, stage) { return realm === 10 && stage > 10 ? `${REALMS[9]} · Level ${stage - 10}` : `${REALMS[realm - 1]} ${stage}`; }
+  function stageLabel(realm, stage) { return realm === 10 && stage > 10 ? `${REALMS[9]} · Level ${stage - 10}` : `${REALMS[realm - 1]} · Stage ${stage}`; }
   function nextLabel() {
-    if (state.realm === 10 && state.stage === 10) return 'Peak of cultivation';
+    if (state.realm === 10 && state.stage >= 10) return `Advance to Level ${state.stage - 9}`;
     if (state.stage < 10) return `Advance to Stage ${state.stage + 1}`;
     return `Break through to ${REALMS[state.realm]}`;
   }
@@ -399,13 +401,13 @@
     if (ch.server_time) clockOffset = new Date(ch.server_time).getTime() - Date.now();
     $('#home-username').textContent = currentProfile ? currentProfile.username + (currentProfile.is_admin ? ' · Admin' : '') : '';
     $('#home-name').textContent = ch.name;
-    $('#home-realm').textContent = `${REALMS[ch.realm - 1]} · Stage ${ch.stage}`;
-    $('#home-root').textContent = `${ch.root_grade} Root`;
-    $('#home-mult').textContent = `×${Number(ch.root_multiplier).toFixed(2)}`;
+    $('#home-realm').textContent = `${stageLabel(ch.realm, ch.stage)}`;
+    $('#home-root').textContent = ch.root_hidden ? 'Sealed Root' : `${ch.root_grade} Root`;
+    $('#home-mult').textContent = ch.root_hidden ? 'Reveals at Foundation Establishment' : `×${Number(ch.root_multiplier).toFixed(2)}`;
     $('#home-stones').textContent = fmt(ch.spirit_stones);
     $('#home-realm-num').textContent = `${ch.realm} of 10`;
     $('#char-name').textContent = ch.name;
-    $('#char-realm').textContent = `${REALMS[ch.realm - 1]} · Stage ${ch.stage}`;
+    $('#char-realm').textContent = `${stageLabel(ch.realm, ch.stage)}`;
     $('#char-sect').textContent = ch.sect ? ch.sect.name : 'None';
     const pts = ch.free_points || 0;
     $('#hub-points').hidden = !pts;
@@ -433,7 +435,7 @@
     const { data, error } = await sb.rpc('breakthrough');
     btn.dataset.busy = '';
     if (error) { toast(friendly(error)); tick(); return; }
-    if (data.major && data.success) toast(`Breakthrough! You have entered ${REALMS[data.realm - 1]}. +${data.points} free stat points.`);
+    if (data.major && data.success) toast(data.realm === 2 ? `Breakthrough! You have entered ${REALMS[1]}. Your spirit root awakens: ${data.root_grade} root (${(data.spirit_root || []).join(', ')}), ×${Number(data.root_multiplier).toFixed(2)} speed. +${data.points} free stat points.` : `Breakthrough! You have entered ${REALMS[data.realm - 1]}. +${data.points} free stat points.`);
     else if (data.major) toast(`The breakthrough failed. ${fmt(data.qi_lost)} qi scattered.`);
     else toast(`You reached Stage ${data.stage}.${data.points ? ` +${data.points} free stat points.` : ''}`);
     const card = $('#home-card');
@@ -1013,7 +1015,7 @@
     const rq = $('#sect-requests');
     rq.innerHTML = '';
     s.requests.forEach((r) => {
-      rq.appendChild(personRow(`<strong>${esc(r.name)}</strong><span class="muted small-text">${esc(r.root)} root · ${REALMS[r.realm - 1]} ${r.stage}</span>`, [
+      rq.appendChild(personRow(`<strong>${esc(r.name)}</strong><span class="muted small-text">${esc(r.root)} root · ${stageName(r.realm, r.stage)}</span>`, [
         smallBtn('Accept', 'primary', async () => { const d = await sectCall('respond_request', { p_char: r.id, p_accept: true }, `${r.name} has joined.`); if (d) renderMySect(d); }),
         smallBtn('Decline', 'ghost', async () => { const d = await sectCall('respond_request', { p_char: r.id, p_accept: false }); if (d) renderMySect(d); })
       ]));
@@ -1156,7 +1158,7 @@
       }
       ml.appendChild(personRow(`<strong>${esc(m.name)}${me ? ' <span class="you">you</span>' : ''}</strong>
         <span class="role-tag r-${m.role}">${ROLE[m.role]}</span>
-        <span class="muted small-text">${REALMS[m.realm - 1]} ${m.stage} · ${esc(m.region)}</span>`, btns));
+        <span class="muted small-text">${stageName(m.realm, m.stage)} · ${esc(m.region)}</span>`, btns));
     });
 
     const al = $('#sect-allies');
@@ -1258,7 +1260,7 @@
       }
       ul.appendChild(personRow(`<strong>${n.role === 'guardian' ? '⛩ ' : n.role === 'raider' ? '🔥 ' : ''}${esc(n.name)}</strong>
         <div class="tags"><span class="npc-tag">${esc(n.title)}</span><span class="gain ${t[1]} tmp">${t[0]}</span><span class="odds o-${n.odds.toLowerCase()}">${n.odds}</span></div>
-        <span class="muted small-text">${REALMS[n.realm - 1]} ${n.stage} · ${n.role === 'guardian' ? `guards this region for ${esc(n.sect)}. Defeat them (sect leader or elder) to free the land for 3 days.` : n.role === 'raider' ? '<span class="hurt">raiding your sect — defeat them!</span>' : n.sect ? `disciple of ${esc(n.sect)}` : 'wandering cultivator'}</span>
+        <span class="muted small-text">${stageName(n.realm, n.stage)} · ${n.role === 'guardian' ? `guards this region for ${esc(n.sect)}. Defeat them (sect leader or elder) to free the land for 3 days.` : n.role === 'raider' ? '<span class="hurt">raiding your sect — defeat them!</span>' : n.sect ? `disciple of ${esc(n.sect)}` : 'wandering cultivator'}</span>
         ${n.block ? `<span class="muted small-text block">${esc(n.block)}</span>` : ''}`, btns));
     });
     list.forEach((o) => {
@@ -1266,7 +1268,7 @@
       const warn = o.relation === 'mine' ? '<span class="warn-tag">Same sect</span>' : o.relation === 'ally' ? '<span class="warn-tag">Ally</span>' : o.relation === 'enemy' ? '<span class="enemy-tag">Enemy</span>' : '';
       const li = personRow(`<strong>${esc(o.name)}</strong>
         <div class="tags">${sect}${warn}<span class="odds o-${o.odds.toLowerCase()}">${o.odds}</span></div>
-        <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · ${esc(o.root)} root${o.secluded ? ' · in seclusion' : ''}${o.hurt > 0 ? ` · <span class="hurt">wounded ${o.hurt}%</span>` : ''}</span>
+        <span class="muted small-text">${stageName(o.realm, o.stage)} · ${esc(o.root)} root${o.secluded ? ' · in seclusion' : ''}${o.hurt > 0 ? ` · <span class="hurt">wounded ${o.hurt}%</span>` : ''}</span>
         ${o.block ? `<span class="muted small-text block">${esc(o.block)}</span>` : ''}`, []);
       const box = document.createElement('div');
       box.className = 'p-actions';
@@ -1345,7 +1347,7 @@
     const ul = $('#ad-results'); ul.innerHTML = '';
     (r || []).forEach((x) => ul.appendChild(personRow(`<strong>${esc(x.name)}</strong>
       <div class="tags">${x.banned ? '<span class="enemy-tag">Banned</span>' : ''}${x.admin ? '<span class="warn-tag">Admin</span>' : ''}</div>
-      <span class="muted small-text">@${esc(x.username)} · ${REALMS[x.realm - 1]} ${x.stage}${x.sect ? ` · ${esc(x.sect)}` : ''}</span>`, [smallBtn('Open', 'primary', () => adOpen(x.id))])));
+      <span class="muted small-text">@${esc(x.username)} · ${stageName(x.realm, x.stage)}${x.sect ? ` · ${esc(x.sect)}` : ''}</span>`, [smallBtn('Open', 'primary', () => adOpen(x.id))])));
     if (r && !r.length) ul.innerHTML = '<li class="muted small-text">No one found.</li>';
   }
   $('#ad-find').addEventListener('click', adSearch);
@@ -1359,7 +1361,7 @@
     const d = await adCall('admin_get', { p_char: id });
     if (d) renderAdChar(d);
   }
-  const ROOT_GRADES = [['Mutant', 2.2, 'Mutant (×2.2)'], ['Heavenly', 2.0, 'Heavenly (×2.0)'], ['Earth', 1.5, 'Earth (×1.5)'], ['Human', 1.2, 'Human (×1.2)'], ['Mixed', 1.0, 'Mixed, 4 roots (×1.0)'], ['Mixed', 0.8, 'Mixed, 5 roots (×0.8)']];
+  const ROOT_GRADES = [['Mutant', 1.52, 'Mutant (×1.52)'], ['Heavenly', 1.38, 'Heavenly (×1.38)'], ['Earth', 1.26, 'Earth (×1.26)'], ['Human', 1.16, 'Human (×1.16)'], ['Mixed', 1.07, 'Mixed, 4 roots (×1.07)'], ['Mixed', 1.0, 'Mixed, 5 roots (×1.00)']];
   const ROOT_ELS = [['Metal', '金'], ['Wood', '木'], ['Water', '水'], ['Fire', '火'], ['Earth', '土'], ['Lightning', '雷'], ['Ice', '冰'], ['Nature', '生']];
   function pickRoots(current, done) {
     const chosen = new Set(String(current || '').split(',').map((x) => x.trim()).filter(Boolean));
@@ -1392,7 +1394,7 @@
     box.hidden = false;
     const val = (k) => (k === 'spirit_root' ? (d.spirit_root || []).join(', ') : d[k] == null ? '' : d[k]);
     box.innerHTML = `<div class="bag-head"><h4 class="card-title">${esc(d.name)}</h4><span class="muted small-text">@${esc(d.username)}</span></div>
-      <p class="small-text">${REALMS[d.realm - 1]} ${d.stage} · qi ${fmt(d.qi)} / ${fmt(d.qi_needed)} · HP ${d.hp}/${d.hp_max} · energy ${d.energy}/${d.energy_max}<br>
+      <p class="small-text">${stageName(d.realm, d.stage)} · qi ${fmt(d.qi)} / ${fmt(d.qi_needed)} · HP ${d.hp}/${d.hp_max} · energy ${d.energy}/${d.energy_max}<br>
         ${esc(d.region || '')}${d.travelling ? ' (travelling)' : ''}${d.sect ? ` · ${esc(d.sect)} (${d.sect_role})` : ''}${d.in_battle ? ' · <span class="hurt">in a fight</span>' : ''}${d.in_realm ? ` · inside the ${d.in_realm} realm` : ''}</p>
       ${d.banned_until ? `<p class="hurt small-text">Banned until ${new Date(d.banned_until).toLocaleString()} — ${esc(d.ban_reason || 'no reason')}</p>` : ''}
       <div class="war-form" id="ad-quick"></div>
@@ -1567,7 +1569,7 @@
       }));
       pp.appendChild(personRow(`<strong>${esc(o.name)}</strong>
         <div class="tags">${o.party ? '<span class="warn-tag">Party</span>' : ''}<span class="odds o-${o.odds.toLowerCase()}">${o.odds}</span></div>
-        <span class="muted small-text">${REALMS[o.realm - 1]} ${o.stage} · carrying ${o.carrying} treasure${o.carrying === 1 ? '' : 's'}</span>`, btns));
+        <span class="muted small-text">${stageName(o.realm, o.stage)} · carrying ${o.carrying} treasure${o.carrying === 1 ? '' : 's'}</span>`, btns));
     });
     const bag = $('#rl-bag');
     bag.innerHTML = d.bag.length ? '' : '<li class="muted small-text">Nothing yet. Search deeper areas for rarer finds.</li>';
@@ -1753,7 +1755,7 @@
       const btns = [];
       if (lead && m.id !== state.id) btns.push(smallBtn('Remove', 'ghost', async () => { const r = await sectCall('party_kick', { p_char: m.id }); if (r) renderParty(r); }));
       ul.appendChild(personRow(`<strong>${m.id === p.leader ? '♛ ' : ''}${esc(m.name)}${state && m.id === state.id ? ' <small class="muted">(you)</small>' : ''}</strong>
-        <span class="muted small-text">${REALMS[m.realm - 1]} ${m.stage}${m.class && CLASSES[m.class] ? ` · ${CLASSES[m.class].name}` : ''} · ${m.here ? 'here' : esc(m.region)}${m.hurt > 0 ? ` · <span class="hurt">wounded ${m.hurt}%</span>` : ''}</span>`, btns));
+        <span class="muted small-text">${stageName(m.realm, m.stage)}${m.class && CLASSES[m.class] ? ` · ${CLASSES[m.class].name}` : ''} · ${m.here ? 'here' : esc(m.region)}${m.hurt > 0 ? ` · <span class="hurt">wounded ${m.hurt}%</span>` : ''}</span>`, btns));
     });
     if (lead) acts.appendChild(smallBtn(`Hunt together (−${state.explore_cost * 2} stamina each)`, 'primary', async () => {
       const r = await sectCall('party_hunt', {});
@@ -1848,7 +1850,7 @@
     duelWaiting = d.outgoing.length > 0;
     d.incoming.forEach((x) => {
       ul.appendChild(personRow(`<strong>${esc(x.name)} challenges you</strong>
-        <span class="muted small-text">${REALMS[x.realm - 1]} ${x.stage} · ${x.bet ? `${fmt(x.bet)} stones each` : 'no bet'} · <span class="odds o-${x.odds.toLowerCase()}">${x.odds}</span></span>`, [
+        <span class="muted small-text">${stageName(x.realm, x.stage)} · ${x.bet ? `${fmt(x.bet)} stones each` : 'no bet'} · <span class="odds o-${x.odds.toLowerCase()}">${x.odds}</span></span>`, [
         smallBtn('Accept', 'primary', async () => {
           const r = await sectCall('respond_duel', { p_duel: x.id, p_accept: true });
           if (!r) return;
@@ -2320,7 +2322,7 @@
     if (reset) { dmLast = 0; $('#dm-log').innerHTML = ''; }
     const { data, error } = await sb.rpc('get_dm', { p_other: dmOther, p_after: dmLast });
     if (error) return toast(friendly(error));
-    $('#dm-with').textContent = `${data.other.name} · ${REALMS[data.other.realm - 1]} ${data.other.stage}`;
+    $('#dm-with').textContent = `${data.other.name} · ${stageName(data.other.realm, data.other.stage)}`;
     const log = $('#dm-log');
     data.messages.forEach((m) => { log.appendChild(dmLine(m, data.me)); dmLast = Math.max(dmLast, m.id); });
     if (reset && !data.messages.length) log.innerHTML = '<p class="muted center small-text empty-chat">Start the conversation.</p>';
@@ -2563,7 +2565,7 @@
   async function loadStyles() {
     const { data, error } = await sb.rpc('my_stats');
     if (error) return toast(friendly(error));
-    $('#sy-soul').innerHTML = state ? `<strong>${REALMS[state.realm - 1]} · Stage ${state.stage}</strong> <span class="muted">(stage ${data.stage_index} of 100)</span>` : '';
+    $('#sy-soul').innerHTML = state ? `<strong>${stageLabel(state.realm, state.stage)}</strong> <span class="muted">(stage ${data.stage_index} of 100)</span>` : '';
     $('#sy-body').innerHTML = `<strong>Level ${fmt(Math.floor(data.body_level))}</strong> <span class="muted">· physical caps +${Math.floor(data.body_level)}%</span>`;
     $('#sy-mind').innerHTML = `<strong>Level ${fmt(Math.floor(data.mind_level))}</strong> <span class="muted">· mental caps +${Math.floor(data.mind_level)}%</span>`;
   }
@@ -3250,10 +3252,10 @@
     if (error) return setError(f, friendly(error));
     createdCharacter = data;
     $('#reveal-name').textContent = data.name;
-    $('#reveal-grade').textContent = `${data.root_grade} Spirit Root`;
-    $('#reveal-grade').dataset.grade = data.root_grade;
-    $('#reveal-desc').textContent = GRADE_TEXT[data.root_grade] || '';
-    orbs($('#reveal-orbs'), data.spirit_root);
+    $('#reveal-grade').textContent = 'Sealed Spirit Root';
+    $('#reveal-grade').dataset.grade = '';
+    $('#reveal-desc').textContent = 'Your spirit root is still sealed. Its elements, grade and speed will reveal themselves when you break through to Foundation Establishment.';
+    orbs($('#reveal-orbs'), []);
     $('#create-step-name').hidden = true;
     $('#create-step-reveal').hidden = false;
   });
