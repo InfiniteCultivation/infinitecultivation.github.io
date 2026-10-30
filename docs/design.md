@@ -372,3 +372,7 @@ Decisions agreed with the owner, to build into later milestones.
 - Resets: realm/stage, new sealed random root, class, profession, stats, skills, arts, upgrades, toxicity, equipped gear. Kept: bag, stones, sect, master/pupils, soul bonus and blessings.
 - Root gifts (after Foundation Establishment): all stats +0/0/2/3/5/5% (Mixed/Mixed/Human/Earth/Heavenly/Mutant); element gifts split across your elements: Fire energy recovery, Water health recovery, Earth max health, Metal damage, Wood stamina, Lightning dodge, Ice parry, Nature healing power.
 - Character › Rebirth screen. Account name removed from the top bar; admin opens from the seal. Admin player picker is an A–Z scrolling list with live filter.
+
+## Step 26 — Guide & Settings (built)
+- Home › Guide: tabbed player guide (Start, Cultivation, Spirit roots, Combat, Classes & crafts, World, Sects & war, Realms & events, Rebirth). Keep it updated when mechanics change.
+- Home › Settings: text size, reduce motion, fight modes (beasts/players auto or manual), chat red dots, update message, sign out. Display settings are stored per device.

@@ -2218,6 +2218,130 @@
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
   };
 
+  // ---------- Settings ----------
+  function applySettings() {
+    const z = Number(store.get('set_text') || '1');
+    document.body.style.zoom = z === 1 ? '' : String(z);
+    document.body.classList.toggle('reduce-motion', store.get('set_motion') === 'on');
+  }
+  applySettings();
+  function paintSetChips(id, v) { document.querySelectorAll(`#${id} .chip`).forEach((b) => b.classList.toggle('active', b.dataset.v === v)); }
+  async function loadSettings() {
+    paintSetChips('set-text', store.get('set_text') || '1');
+    paintSetChips('set-motion', store.get('set_motion') || 'off');
+    paintSetChips('set-chatdots', store.get('set_chatdots') || 'on');
+    paintSetChips('set-updnote', store.get('set_updnote') || 'on');
+    $('#set-account').textContent = currentProfile ? `Signed in as ${currentProfile.username}. Your account name is never shown to other players.` : '';
+    const { data } = await sb.rpc('my_arts');
+    if (data) { artsData = data; paintSetChips('set-monster', data.monster_mode || 'manual'); paintSetChips('set-pvp', data.pvp_mode || 'manual'); }
+  }
+  [['set-text', 'set_text'], ['set-motion', 'set_motion'], ['set-chatdots', 'set_chatdots'], ['set-updnote', 'set_updnote']].forEach(([id, key]) => {
+    document.querySelectorAll(`#${id} .chip`).forEach((b) => b.addEventListener('click', () => {
+      store.set(key, b.dataset.v); paintSetChips(id, b.dataset.v); applySettings();
+      if (key === 'set_chatdots') paintChatDots();
+    }));
+  });
+  ['monster', 'pvp'].forEach((k) => document.querySelectorAll(`#set-${k} .chip`).forEach((b) => b.addEventListener('click', async () => {
+    const m = k === 'monster' ? b.dataset.v : (artsData && artsData.monster_mode) || 'manual';
+    const pv = k === 'pvp' ? b.dataset.v : (artsData && artsData.pvp_mode) || 'manual';
+    const r = await sectCall('set_combat_modes', { p_monster: m, p_pvp: pv }, 'Saved.');
+    if (r) { artsData = r; paintSetChips('set-monster', r.monster_mode); paintSetChips('set-pvp', r.pvp_mode); }
+  })));
+  $('#set-signout').addEventListener('click', () => $('#btn-signout').click());
+
+  // ---------- Guide ----------
+  const GUIDE = [
+    ['Start', `<h3>Welcome, cultivator</h3>
+      <p>You are a mortal who has just awakened a <strong>spirit root</strong>. Your goal: gather qi, break through realm after realm, and grow strong enough to shape the world — alone, with a party, or with a sect.</p>
+      <h4>Your first steps</h4>
+      <ol><li>Tap <strong>Cultivate</strong> on Home. For the next hour you gather qi. Come back and tap it again.</li>
+      <li>When the qi bar is full, tap <strong>Advance</strong> to reach the next stage.</li>
+      <li>Before you log off, start <strong>Seclusion</strong>: it keeps cultivating while you're away, faster than normal.</li>
+      <li>Go to <strong>World › Explore</strong> to find herbs, stones and fights. Spend stat points in <strong>Character › Stats</strong>.</li>
+      <li>Pick a <strong>Class</strong> and a <strong>Profession</strong> in Character when you're ready — you can't change them easily.</li></ol>
+      <h4>The screens</h4>
+      <ul><li><strong>Home</strong>: your cultivation, health, energy, stamina, alerts and notifications.</li>
+      <li><strong>Character</strong>: stats, skills, arts, class, profession, gear, styles, upgrades, messages and rebirth.</li>
+      <li><strong>World</strong>: explore, hunt, travel, find cultivators nearby, sects, raids, tournaments and secret realms.</li>
+      <li><strong>Chat</strong> and <strong>Sect Chat</strong>: talk with your region, continent, the whole world, or your sect.</li></ul>`],
+    ['Cultivation', `<h3>Qi and breakthroughs</h3>
+      <p>There are <strong>10 realms</strong>, each with <strong>10 stages</strong>: Qi Condensation, Foundation Establishment, Core Formation, Nascent Soul, Soul Formation, Void Refinement, Body Integration, Mahayana, Tribulation Transcendence and Immortal Ascension.</p>
+      <ul><li><strong>Cultivate</strong> gathers qi for one hour at a time.</li>
+      <li><strong>Seclusion</strong> gathers qi 2.5× faster (more inside your sect's home), up to 8 hours a day. You can't explore or fight while secluded.</li>
+      <li>Qi stops when the stage is full — come back and advance.</li>
+      <li>Stages 1–9 always succeed. Stage 10 to the next realm is a <strong>major breakthrough</strong>: 90% at first, 6% lower each realm (never below 30%). Failing scatters half your qi.</li>
+      <li>Every new stage gives free stat points; a new realm gives 10 extra.</li>
+      <li>After Immortal Ascension 10 you keep climbing in endless <strong>Levels</strong>.</li></ul>
+      <h4>Speeding up</h4>
+      <p>Winning fights grants instant qi and a short speed boost. Pills give big bursts of qi but build <strong>toxicity</strong>: temporary toxicity fades on its own; too much becomes permanent and slows you for good. Masters, secret realms and reincarnation blessings help too.</p>`],
+    ['Spirit roots', `<h3>Your spirit root</h3>
+      <p>Your root is <strong>sealed</strong> until you reach Foundation Establishment — until then everyone cultivates at the same pace. When it awakens you learn its <strong>elements</strong> and <strong>grade</strong>.</p>
+      <ul><li><strong>Grade</strong> sets your cultivation speed and a small bonus to all stats: Mixed (5 roots ×1.00, 4 roots ×1.07), Human ×1.16 (+2%), Earth ×1.26 (+3%), Heavenly ×1.38 (+5%), and the rare Mutant ×1.52 (+5%).</li>
+      <li><strong>Elements</strong> each grant a gift, shared between all your elements: Fire faster energy recovery, Water faster health recovery, Earth more health, Metal more damage, Wood more stamina, Lightning dodge, Ice parry, Nature stronger healing.</li>
+      <li>Elements also matter for professions (some suit certain elements) and for Spellcasters.</li></ul>
+      <p>Better roots are noticeably better, not unbeatable. A poor root can still go far — and reincarnation lets you try for a new one.</p>`],
+    ['Combat', `<h3>How fights work</h3>
+      <ul><li>Fights are turn based. Each turn: use a <strong>Strike</strong> or <strong>Technique</strong>, defend with a <strong>Reaction</strong>, drink a pill, or flee.</li>
+      <li>Equip up to <strong>6 arts</strong> plus one <strong>Ultimate</strong> in Character › Arts. Arts cost energy; the Ultimate charges over several turns.</li>
+      <li><strong>Auto</strong> lets instinct fight for you. If you don't act in 30 seconds, instinct takes over anyway.</li>
+      <li>Health and energy carry over between fights and recover slowly (healers in towns restore you for stones). Below 25% health you're too injured to fight.</li>
+      <li><strong>Teams</strong>: parties of up to 3 fight together; turns alternate between sides; tanks can draw attacks, reactions can shield teammates.</li></ul>
+      <h4>Against other players</h4>
+      <ul><li><strong>Attack</strong> (ambush) anyone in your region outside towns. Losing as the attacker slows your cultivation for a while; the winner gains qi and a boost.</li>
+      <li><strong>Duel</strong> is a friendly fight with an optional bet — nobody is hurt.</li>
+      <li>Towns are safe zones.</li></ul>`],
+    ['Classes & crafts', `<h3>Classes</h3>
+      <ul><li><strong>Swordsman</strong> — critical hits, bleeding, ripostes.</li>
+      <li><strong>Body Cultivator</strong> — tough, drains life, resists stuns, draws enemy attacks.</li>
+      <li><strong>Spellcaster</strong> — elemental magic; choose a primary element.</li>
+      <li><strong>Soul Cultivator</strong> — mental attacks, energy and resistances.</li>
+      <li><strong>Physician</strong> — healing and support arts for allies.</li></ul>
+      <p>Class level rises as you fight. Levels are capped (25, 50, 75…); a town trainer or a master can raise your cap.</p>
+      <h3>Professions</h3>
+      <ul><li><strong>Gatherer</strong> — finds more materials; searches secret realms twice as fast.</li>
+      <li><strong>Alchemist</strong> — pills. <strong>Blacksmith</strong> — weapons and armor. <strong>Talisman Master</strong> — talismans. <strong>Array Master</strong> — formations.</li></ul>
+      <h4>Masters</h4><p>Ask a stronger cultivator for guidance to raise your caps. Town trainers raise class and profession caps from 25 to 50; the Grand Elder in the Imperial Capital raises them to 75.</p>`],
+    ['World', `<h3>Exploring the world</h3>
+      <ul><li>Five continents, each with a town and wild regions of rising danger.</li>
+      <li><strong>Explore</strong> costs stamina (it recovers 1 per minute) and finds herbs, stones, beasts, wandering cultivators and chance encounters. <strong>Hunt</strong> seeks beasts on purpose.</li>
+      <li><strong>Travel</strong> takes 30 seconds within a continent, 3 minutes between continents.</li>
+      <li>Each region has a specialty material that's easier to find there.</li>
+      <li>NPC cultivators live in regions: talk to friendly ones for gifts; hostile ones may ambush you while exploring.</li>
+      <li><strong>Trade</strong>: the market and the auction house let you buy and sell with other players.</li></ul>`],
+    ['Sects & war', `<h3>Sects</h3>
+      <ul><li>Found a sect (300 stones) or join one. Members share a treasury, storehouse and sect chat.</li>
+      <li>Claim regions as <strong>territory</strong> for taxes, tribute materials and faster seclusion at home.</li>
+      <li>Form <strong>alliances</strong> with other sects.</li></ul>
+      <h4>NPC sects</h4><p>Each continent has easy, medium and hard NPC sects. Challenge them alone or with your party once a day; their defenders match your strength. Harder sects pay far more.</p>
+      <h4>Raids</h4><p>Bandit sects sometimes invade your lands. Their raiders ambush your members in the wild. Defeat them all within 48 hours for loot, or they steal 15% of your treasury.</p>
+      <h4>Sect wars</h4><p>A leader can declare war. The target may accept (calling allies — then the attacker may call as many) or decline and pay 5% of their treasury. After a 1-hour countdown the war lasts 48 hours: winning duels and ambushes against enemies takes their points (beating stronger foes is worth more); a side that starts no fight for an hour loses points; after fighting an enemy, towns turn you away for 5 minutes. The winner takes the stake — reparations or a region.</p>`],
+    ['Realms & events', `<h3>Secret realms</h3>
+      <ul><li><strong>Mystic Realm</strong>: Foundation Establishment+, 200 stones, from any town. <strong>Divine Realm</strong>: Nascent Soul+, 1000 stones, from the Imperial Capital.</li>
+      <li>One hour inside, once every 6 hours. Move between areas — deeper is more dangerous and richer — and <strong>Search</strong> for rare treasures.</li>
+      <li>Fall to a guardian beast and everything you carry vanishes. Fall to another cultivator and they keep one treasure from you. Only what you carry out through the gate is yours.</li></ul>
+      <h3>Tournaments</h3>
+      <p>Anyone can host from a town by putting up three prizes. Everyone is notified and has 10 minutes to reach that town and enter. Single-elimination matches are fought in the arena at full health with no injuries; prizes for 1st, 2nd and 3rd are paid automatically.</p>`],
+    ['Rebirth', `<h3>Reincarnation</h3>
+      <p>Once you reach <strong>Soul Formation</strong>, you may be reborn (Character › Rebirth).</p>
+      <ul><li>Each life adds a <strong>permanent bonus to all stats</strong> that stacks forever: Soul Formation +1%, Void Refinement +1.8%, Body Integration +3%, Mahayana +5%, Tribulation +8%, Immortal Ascension +13%, the peak +20%, and +0.2% per Level beyond. Going further always pays more for your time.</li>
+      <li>You also choose <strong>one blessing</strong> from each of four categories — Cultivation, Class, Profession and Stats. Three random offers in each; how strong they are depends on how far you got.</li>
+      <li><strong>Resets</strong>: realm, root (a new sealed one), class, profession, stats, skills, arts, upgrades, toxicity, equipped gear. <strong>Kept</strong>: your bag, stones, sect, master and pupils.</li></ul>
+      <p>A life with a poor root can be reborn early and still gain something — but a strong life pushed deep gives the greatest rewards.</p>`]
+  ];
+  let guideTab = 0;
+  function renderGuide() {
+    const tabs = $('#guide-tabs');
+    tabs.innerHTML = '';
+    GUIDE.forEach(([name], i) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (i === guideTab ? ' active' : '');
+      b.textContent = name;
+      b.onclick = () => { guideTab = i; renderGuide(); $('#guide-body').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      tabs.appendChild(b);
+    });
+    $('#guide-body').innerHTML = GUIDE[guideTab][1];
+  }
+
   function makeChat({ logEl, inputEl, formEl, labelEl, channel, onLabel, onSeen }) {
     let lastId = 0;
     let currentKey = null;
@@ -2296,8 +2420,10 @@
       if (chip) chip.hidden = !u;
       any = any || u;
     });
+    const dotsOff = store.get('set_chatdots') === 'off';
+    if (dotsOff) { any = false; document.querySelectorAll('#chat-tabs .chip-dot').forEach((d) => { d.hidden = true; }); }
     $('#tab-chat-dot').hidden = !any;
-    $('#tab-schat-dot').hidden = onSect || !unseen('sect');
+    $('#tab-schat-dot').hidden = dotsOff || onSect || !unseen('sect');
   }
   let chatDotsBusy = false;
   async function refreshChatDots() {
@@ -3173,6 +3299,8 @@
     if (id === 'pane-realm') loadRealm();
     if (id === 'pane-admin') { if (!isAdmin()) return; loadAdmin(); adSearch(); loadWorld().catch(() => {}); }
     if (id === 'pane-rebirth') loadRebirth();
+    if (id === 'pane-guide') renderGuide();
+    if (id === 'pane-settings') loadSettings();
     if (id === 'pane-arts') loadArts();
     if (id === 'pane-class') loadClass();
     if (id === 'pane-gear') loadGear();
@@ -3344,6 +3472,6 @@
       setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
     }).catch(() => {}));
-    try { if (sessionStorage.getItem('updated')) { sessionStorage.removeItem('updated'); setTimeout(() => toast('The game was updated to the newest version.'), 1500); } } catch (e) { /* */ }
+    try { if (sessionStorage.getItem('updated')) { sessionStorage.removeItem('updated'); if (store.get('set_updnote') !== 'off') setTimeout(() => toast('The game was updated to the newest version.'), 1500); } } catch (e) { /* */ }
   }
 })();

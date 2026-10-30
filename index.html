@@ -171,6 +171,45 @@
           <ul class="notes-list" id="notes-list"></ul>
           <p class="muted center small-text" id="notes-empty" hidden>Nothing new.</p>
         </details>
+
+        <div class="hub two home-extra">
+          <button class="hub-btn" data-go="pane-guide"><span class="h-ico">典</span>Guide</button>
+          <button class="hub-btn" data-go="pane-settings"><span class="h-ico">設</span>Settings</button>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-guide">
+        <button class="back" data-go="pane-cultivate">‹ Home</button>
+        <div class="card">
+          <h4 class="card-title">Guide</h4>
+          <div class="chips guide-tabs" id="guide-tabs"></div>
+        </div>
+        <div class="card guide-body" id="guide-body"></div>
+      </div>
+
+      <div class="pane" id="pane-settings">
+        <button class="back" data-go="pane-cultivate">‹ Home</button>
+        <div class="card">
+          <h4 class="card-title">Display</h4>
+          <div class="set-row"><span>Text size</span><div class="chips" id="set-text"><button class="chip" data-v="1">Normal</button><button class="chip" data-v="1.1">Large</button><button class="chip" data-v="1.2">Larger</button></div></div>
+          <div class="set-row"><span>Reduce motion</span><div class="chips" id="set-motion"><button class="chip" data-v="off">Off</button><button class="chip" data-v="on">On</button></div></div>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Fighting</h4>
+          <p class="muted small-text">How you fight when a battle starts. Auto lets instinct choose every move; Manual lets you pick (instinct still steps in after 30 seconds).</p>
+          <div class="set-row"><span>Against beasts &amp; NPCs</span><div class="chips" id="set-monster"><button class="chip" data-v="manual">Manual</button><button class="chip" data-v="auto">Auto</button></div></div>
+          <div class="set-row"><span>Against players</span><div class="chips" id="set-pvp"><button class="chip" data-v="manual">Manual</button><button class="chip" data-v="auto">Auto</button></div></div>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Alerts</h4>
+          <div class="set-row"><span>Red dots for new chat messages</span><div class="chips" id="set-chatdots"><button class="chip" data-v="on">On</button><button class="chip" data-v="off">Off</button></div></div>
+          <div class="set-row"><span>Message after a game update</span><div class="chips" id="set-updnote"><button class="chip" data-v="on">On</button><button class="chip" data-v="off">Off</button></div></div>
+        </div>
+        <div class="card">
+          <h4 class="card-title">Account</h4>
+          <p class="muted small-text" id="set-account"></p>
+          <button class="btn ghost" id="set-signout">Sign out</button>
+        </div>
       </div>
 
       <!-- Character -->
