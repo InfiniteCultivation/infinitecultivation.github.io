@@ -383,3 +383,6 @@ Decisions agreed with the owner, to build into later milestones.
 - Each opening: element theme (shapes beasts) and quality good/great/exceptional (better loot + find chance). Instances are per opening (people/PvP only within it). Closing casts everyone out with their loot.
 - Mystic openings notify players on that continent; Divine notifies everyone. Town shows Secret realms badge + rumors of realms open in other towns.
 - Physician: "Use on yourself" for Restoring Hands on its slot in Character › Arts. Vigor Infusion gives others stamina at a poor rate (0.3 stamina per energy at level 1), others only.
+
+## Step 28 — Seclusion auto-advance (owner chose option 1)
+- During seclusion, stages 1–9 (and endless Levels) advance automatically; overflow qi carries into the next stage; free points are granted. It stops before a major breakthrough, with a one-time "Ready for a major breakthrough" message per seclusion.

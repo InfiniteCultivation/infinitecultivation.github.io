@@ -2296,7 +2296,7 @@
       <p>There are <strong>10 realms</strong>, each with <strong>10 stages</strong>: Qi Condensation, Foundation Establishment, Core Formation, Nascent Soul, Soul Formation, Void Refinement, Body Integration, Mahayana, Tribulation Transcendence and Immortal Ascension.</p>
       <ul><li><strong>Cultivate</strong> gathers qi for one hour at a time.</li>
       <li><strong>Seclusion</strong> gathers qi 2.5× faster (more inside your sect's home), up to 8 hours a day. You can't explore or fight while secluded.</li>
-      <li>Qi stops when the stage is full — come back and advance.</li>
+      <li>When a stage is full, qi stops until you advance. In <strong>seclusion</strong>, stages 1–9 advance by themselves and extra qi carries over — it only stops before a major breakthrough, which you must attempt yourself (you'll get a message).</li>
       <li>Stages 1–9 always succeed. Stage 10 to the next realm is a <strong>major breakthrough</strong>: 90% at first, 6% lower each realm (never below 30%). Failing scatters half your qi.</li>
       <li>Every new stage gives free stat points; a new realm gives 10 extra.</li>
       <li>After Immortal Ascension 10 you keep climbing in endless <strong>Levels</strong>.</li></ul>
