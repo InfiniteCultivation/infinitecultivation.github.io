@@ -399,7 +399,7 @@
     state = ch;
     syncedAt = Date.now();
     if (ch.server_time) clockOffset = new Date(ch.server_time).getTime() - Date.now();
-    $('#home-username').textContent = currentProfile ? currentProfile.username + (currentProfile.is_admin ? ' · Admin' : '') : '';
+    $('#home-username').textContent = '';
     $('#home-name').textContent = ch.name;
     $('#home-realm').textContent = `${stageLabel(ch.realm, ch.stage)}`;
     $('#home-root').textContent = ch.root_hidden ? 'Sealed Root' : `${ch.root_grade} Root`;
@@ -1308,6 +1308,49 @@
     });
   }
 
+  // ---------- Reincarnation ----------
+  const RB_CATS = [['cultivation', 'Cultivation', 'from how far this life climbed'], ['class', 'Class', 'from your class and its level'], ['profession', 'Profession', 'from your profession and its level'], ['stats', 'Stats', 'from your trained stats']];
+  const RB_TABLE = [['Soul Formation', 1], ['Void Refinement', 1.8], ['Body Integration', 3], ['Mahayana', 5], ['Tribulation Transcendence', 8], ['Immortal Ascension', 13], ['Peak (Immortal Ascension 10)', 20]];
+  async function loadRebirth() {
+    const { data: d, error } = await sb.rpc('my_rebirth');
+    if (error) return toast(friendly(error));
+    $('#rb-stats').innerHTML = `<div class="stat"><span class="stat-label">Past lives</span><span class="stat-value">${d.lives}</span></div>
+      <div class="stat"><span class="stat-label">Soul bonus</span><span class="stat-value">+${Number(d.total_bonus)}%</span></div>`;
+    const main = $('#rb-main');
+    if (!d.eligible) {
+      main.innerHTML = `<h4 class="card-title">Not yet</h4><p class="small-text">${esc(d.why)}${d.cooldown_until ? ` Ready in ${duration(secsLeft(d.cooldown_until))}.` : ''}</p>
+        <p class="muted small-text">Each life adds a permanent bonus to all stats, depending on how far it got (it grows smoothly between realms):</p>
+        <ul class="war-log">${RB_TABLE.map(([n, v]) => `<li>${n}: <strong>+${v}%</strong></li>`).join('')}<li>Each Level past the peak: <strong>+0.2%</strong> more</li></ul>`;
+    } else {
+      main.innerHTML = `<h4 class="card-title">Be reborn</h4>
+        <p class="small-text">Reincarnating now adds <strong>+${Number(d.gain)}%</strong> to all stats (total +${(Number(d.total_bonus) + Number(d.gain)).toFixed(2).replace(/\.?0+$/, '')}%). Choose one blessing from each category:</p>
+        ${RB_CATS.map(([k, name, from]) => { const c = d.offers[k]; return `<div class="rb-cat"><p class="eyebrow">${name} <span class="muted">· ${c.unaligned ? `no ${k} this life — weaker generic blessings` : from}</span></p>
+          ${c.options.map((o, i) => `<label class="rb-opt"><input type="radio" name="rb-${k}" value="${i}"> <span>${esc(o.label)}</span></label>`).join('')}</div>`; }).join('')}
+        <p class="muted small-text"><strong>Resets:</strong> realm and stage (back to Qi Condensation 1), spirit root (a new random one, sealed), class, profession, stats, skills, arts, upgrades, toxicity and equipped gear. <strong>Kept:</strong> your bag, spirit stones, sect, master and pupils — and everything your soul has gathered.</p>
+        <button class="btn primary" id="rb-go">Reincarnate</button>`;
+      $('#rb-go').onclick = function () {
+        const choices = {};
+        for (const [k] of RB_CATS) {
+          const sel = main.querySelector(`input[name="rb-${k}"]:checked`);
+          if (!sel) return toast('Choose one blessing in every category.');
+          choices[k] = Number(sel.value);
+        }
+        armed(this, 'Tap again — this cannot be undone', async () => {
+          const r = await sectCall('reincarnate', { p_choices: choices });
+          if (!r) return;
+          toast(`Reborn! Your soul now carries +${Number(r.total)}% to all stats.`);
+          try { renderHome(await loadCharacter()); } catch (e) { /* */ }
+          loadRebirth();
+        });
+      };
+    }
+    $('#rb-root').innerHTML = d.root ? `<p class="small-text"><strong>${esc(d.root.grade)} root</strong> (${esc((d.root.roots || []).join(', '))})${Number(d.root.stat_bonus) > 0 ? ` · +${Number(d.root.stat_bonus)}% all stats` : ''}</p>
+        <ul class="war-log">${d.root.perks.map((p) => `<li>${esc(p)}</li>`).join('') || '<li class="muted">No element gifts.</li>'}</ul>
+        <p class="muted small-text">Better grades raise all stats a little; each element grants a gift, shared out between your elements.</p>`
+      : '<p class="muted small-text">Your spirit root is sealed. Its gifts awaken at Foundation Establishment.</p>';
+    $('#rb-perks').innerHTML = d.perks.length ? d.perks.map((p) => `<li><span class="muted">Life ${p.life} · ${p.category}</span> — ${esc(p.label)}</li>`).join('') : '<li class="muted">None yet.</li>';
+  }
+
   // ---------- Banned ----------
   function showBanned(b) {
     const until = new Date(b.until);
@@ -1320,7 +1363,7 @@
   // ---------- Admin panel ----------
   let adChar = null;
   const isAdmin = () => !!(currentProfile && currentProfile.is_admin);
-  ['.topbar .seal', '#home-username'].forEach((sel) => $(sel).addEventListener('click', () => { if (isAdmin()) showPane('pane-admin'); }));
+  $('.topbar .seal').addEventListener('click', () => { if (isAdmin()) showPane('pane-admin'); });
   async function adCall(fn, args, ok) {
     const { data, error } = await sb.rpc(fn, args || {});
     if (error) { toast(friendly(error)); return null; }
@@ -1342,16 +1385,29 @@
     });
     $('#ad-log').innerHTML = d.log.map((l) => `<li><span class="muted">${new Date(l.at).toLocaleString()}</span> · <strong>${esc(l.by || '')}</strong> ${esc(l.action)}${l.target ? ` <strong>${esc(l.target)}</strong>` : ''}${l.detail ? ` — ${esc(l.detail)}` : ''}</li>`).join('') || '<li class="muted">Nothing yet.</li>';
   }
+  let adPlayers = [];
   async function adSearch() {
-    const r = await adCall('admin_search', { p_q: $('#ad-q').value });
-    const ul = $('#ad-results'); ul.innerHTML = '';
-    (r || []).forEach((x) => ul.appendChild(personRow(`<strong>${esc(x.name)}</strong>
-      <div class="tags">${x.banned ? '<span class="enemy-tag">Banned</span>' : ''}${x.admin ? '<span class="warn-tag">Admin</span>' : ''}</div>
-      <span class="muted small-text">@${esc(x.username)} · ${stageName(x.realm, x.stage)}${x.sect ? ` · ${esc(x.sect)}` : ''}</span>`, [smallBtn('Open', 'primary', () => adOpen(x.id))])));
-    if (r && !r.length) ul.innerHTML = '<li class="muted small-text">No one found.</li>';
+    const r = await adCall('admin_search', { p_q: '' });
+    adPlayers = r || [];
+    adFilter();
   }
-  $('#ad-find').addEventListener('click', adSearch);
-  $('#ad-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') adSearch(); });
+  function adFilter() {
+    const q = $('#ad-q').value.trim().toLowerCase();
+    const ul = $('#ad-results'); ul.innerHTML = '';
+    const list = adPlayers.filter((x) => !q || x.name.toLowerCase().includes(q) || (x.username || '').toLowerCase().includes(q));
+    let letter = '';
+    list.forEach((x) => {
+      const l = x.name[0].toUpperCase();
+      if (l !== letter) { letter = l; const h = document.createElement('li'); h.className = 'ad-letter'; h.textContent = l; ul.appendChild(h); }
+      const li = document.createElement('li');
+      li.className = 'ad-item';
+      li.innerHTML = `<strong>${esc(x.name)}</strong>${x.banned ? ' <span class="enemy-tag">Banned</span>' : ''}${x.admin ? ' <span class="warn-tag">Admin</span>' : ''}<span class="muted small-text">@${esc(x.username)} · ${stageName(x.realm, x.stage)}${x.sect ? ` · ${esc(x.sect)}` : ''}</span>`;
+      li.onclick = () => adOpen(x.id);
+      ul.appendChild(li);
+    });
+    if (!list.length) ul.innerHTML = '<li class="muted small-text">No one found.</li>';
+  }
+  $('#ad-q').addEventListener('input', adFilter);
   $('#ad-announce-btn').addEventListener('click', function () {
     const body = $('#ad-announce').value.trim();
     if (!body) return toast('Write the announcement first.');
@@ -3115,7 +3171,8 @@
     clearInterval(dmTimer);
     if (id !== 'pane-battle') stopBattle();
     if (id === 'pane-realm') loadRealm();
-    if (id === 'pane-admin') { if (!isAdmin()) return; loadAdmin(); loadWorld().catch(() => {}); }
+    if (id === 'pane-admin') { if (!isAdmin()) return; loadAdmin(); adSearch(); loadWorld().catch(() => {}); }
+    if (id === 'pane-rebirth') loadRebirth();
     if (id === 'pane-arts') loadArts();
     if (id === 'pane-class') loadClass();
     if (id === 'pane-gear') loadGear();

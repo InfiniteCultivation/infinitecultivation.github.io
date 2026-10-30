@@ -364,3 +364,11 @@ Decisions agreed with the owner, to build into later milestones.
 - Spirit root (elements, grade, speed) is sealed until Foundation Establishment, so remaking characters reveals nothing.
 - After Immortal Ascension 10 you continue in Levels forever; each level needs peak qi × (1 + 0.1 × level).
 - Pending (asked owner): reincarnation (unlocks at Soul Formation; guaranteed % stat bonus = steps/10 capped at 10%, anti-loop "highest point" rule proposed; 3 random benefits per category — cultivation, class, profession, stats — pick 1 each), what resets, and root perks by grade/element (modest, not overpowered).
+
+## Step 25 — Reincarnation & root gifts (built, owner-approved table)
+- Opens at Soul Formation (3-day settle time between rebirths). Each life adds a permanent % to ALL stats, stacking forever:
+  Soul Formation +1, Void Refinement +1.8, Body Integration +3, Mahayana +5, Tribulation +8, Immortal Ascension +13, peak +20, +0.2 per Level after (interpolated between realms by stage). Bonus per day of effort rises with depth, so pushing further always pays more than looping.
+- Blessings: 3 random offers in each of Cultivation / Class / Profession / Stats (quality from progress; no class/profession → weaker generic offers); pick 1 each. Offers are fixed per progress tier (no rerolling).
+- Resets: realm/stage, new sealed random root, class, profession, stats, skills, arts, upgrades, toxicity, equipped gear. Kept: bag, stones, sect, master/pupils, soul bonus and blessings.
+- Root gifts (after Foundation Establishment): all stats +0/0/2/3/5/5% (Mixed/Mixed/Human/Earth/Heavenly/Mutant); element gifts split across your elements: Fire energy recovery, Water health recovery, Earth max health, Metal damage, Wood stamina, Lightning dodge, Ice parry, Nature healing power.
+- Character › Rebirth screen. Account name removed from the top bar; admin opens from the seal. Admin player picker is an A–Z scrolling list with live filter.
