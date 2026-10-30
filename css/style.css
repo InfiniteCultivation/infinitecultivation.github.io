@@ -741,3 +741,12 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .set-row { flex-direction: column; align-items: flex-start; }
 .set-row .chips { flex-wrap: wrap; }
 .rumor-head { margin-top: 14px; }
+.ad-players summary { display: flex; align-items: center; gap: 10px; list-style: none; cursor: pointer; }
+.ad-players summary::-webkit-details-marker { display: none; }
+.ad-players summary .chev { margin-left: auto; transition: transform .2s; }
+.ad-players[open] summary .chev { transform: rotate(180deg); }
+.ad-players[open] summary { margin-bottom: 10px; }
+.ad-alpha { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-bottom: 8px; }
+.ad-alpha button { font: inherit; font-size: .8rem; font-weight: 700; padding: 6px 0; border-radius: 8px; color: var(--gold-2); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.ad-alpha button:disabled { color: var(--muted); opacity: .35; }
+.ad-list { position: relative; }

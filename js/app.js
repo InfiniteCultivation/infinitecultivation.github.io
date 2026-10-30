@@ -1404,14 +1404,23 @@
     const q = $('#ad-q').value.trim().toLowerCase();
     const ul = $('#ad-results'); ul.innerHTML = '';
     const list = adPlayers.filter((x) => !q || x.name.toLowerCase().includes(q) || (x.username || '').toLowerCase().includes(q));
+    $('#ad-count').textContent = `${adPlayers.length} total`;
+    const have = new Set(list.map((x) => x.name[0].toUpperCase()));
+    const az = $('#ad-alpha'); az.innerHTML = '';
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach((L) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = L; b.disabled = !have.has(L);
+      b.onclick = () => { const h = ul.querySelector(`[data-letter="${L}"]`); if (h) ul.scrollTo({ top: h.offsetTop, behavior: 'smooth' }); };
+      az.appendChild(b);
+    });
     let letter = '';
     list.forEach((x) => {
       const l = x.name[0].toUpperCase();
-      if (l !== letter) { letter = l; const h = document.createElement('li'); h.className = 'ad-letter'; h.textContent = l; ul.appendChild(h); }
+      if (l !== letter) { letter = l; const h = document.createElement('li'); h.className = 'ad-letter'; h.dataset.letter = l; h.textContent = l; ul.appendChild(h); }
       const li = document.createElement('li');
       li.className = 'ad-item';
       li.innerHTML = `<strong>${esc(x.name)}</strong>${x.banned ? ' <span class="enemy-tag">Banned</span>' : ''}${x.admin ? ' <span class="warn-tag">Admin</span>' : ''}<span class="muted small-text">@${esc(x.username)} · ${stageName(x.realm, x.stage)}${x.sect ? ` · ${esc(x.sect)}` : ''}</span>`;
-      li.onclick = () => adOpen(x.id);
+      li.onclick = () => { $('#ad-players').open = false; adOpen(x.id); };
       ul.appendChild(li);
     });
     if (!list.length) ul.innerHTML = '<li class="muted small-text">No one found.</li>';

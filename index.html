@@ -427,11 +427,12 @@
           <h4 class="card-title">Admin panel</h4>
           <div class="admin-stats" id="ad-stats"></div>
         </div>
-        <div class="card">
-          <h4 class="card-title">Find a player</h4>
+        <details class="card ad-players" id="ad-players">
+          <summary><span class="card-title">Players</span><span class="muted small-text" id="ad-count"></span><span class="chev">▾</span></summary>
           <div class="admin-row"><input id="ad-q" placeholder="Filter by name or username" autocomplete="off"></div>
+          <div class="ad-alpha" id="ad-alpha"></div>
           <ul class="ad-list" id="ad-results"></ul>
-        </div>
+        </details>
         <div class="card" id="ad-player" hidden></div>
         <div class="card">
           <h4 class="card-title">Announcement to everyone</h4>
