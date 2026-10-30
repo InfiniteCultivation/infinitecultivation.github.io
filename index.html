@@ -715,6 +715,11 @@
             <button class="btn ghost" id="btn-hunt">Hunt beasts</button>
           </div>
 
+          <div class="hub two world-nav">
+            <button class="hub-btn" data-sub="sub-travel"><span class="h-ico">途</span>Travel</button>
+            <button class="hub-btn" data-sub="sub-nearby"><span class="h-ico">戰</span>Cultivators nearby</button>
+          </div>
+
           <div class="card story" id="world-result" hidden></div>
 
           <div class="card town-card" id="town-card" hidden>
@@ -723,17 +728,9 @@
             <div class="hub two">
               <button class="hub-btn" data-go="pane-market"><span class="h-ico">市</span>Market</button>
               <button class="hub-btn" id="btn-healer"><span class="h-ico">醫</span>Healer<small id="healer-note"></small></button>
+              <button class="hub-btn" data-sub="sub-realms"><span class="h-ico">秘</span>Secret realms</button>
+              <button class="hub-btn" data-sub="sub-tour"><span class="h-ico">擂</span>Tournaments<span class="hub-badge" id="hub-tour" hidden></span></button>
             </div>
-          </div>
-
-          <div class="card realm-card" id="realm-card">
-            <h4 class="card-title">Secret realms</h4>
-            <div id="realm-list"></div>
-          </div>
-
-          <div class="card tour-card" id="tour-card">
-            <h4 class="card-title">Tournaments</h4>
-            <div id="tour-body"></div>
           </div>
 
           <div class="card" id="mreq-card" hidden>
@@ -763,10 +760,6 @@
             <ul class="people" id="duels-list"></ul>
           </div>
 
-          <div class="hub two">
-            <button class="hub-btn" data-sub="sub-travel"><span class="h-ico">途</span>Travel</button>
-            <button class="hub-btn" data-sub="sub-nearby"><span class="h-ico">戰</span>Cultivators nearby</button>
-          </div>
         </div>
 
         <div class="sub" id="sub-nearby" hidden>
@@ -784,6 +777,22 @@
             <p class="muted small-text">Offer a fee if you like. It is held until they answer and returned if they decline. You must both stay in this region.</p>
             <ul class="people" id="guide-list"></ul>
             <p class="muted small-text legend">★ your sect · ◆ allied sect</p>
+          </div>
+        </div>
+
+        <div class="sub" id="sub-realms" hidden>
+          <button class="back" data-back>‹ Back</button>
+          <div class="card realm-card" id="realm-card">
+            <h4 class="card-title">Secret realms</h4>
+            <div id="realm-list"></div>
+          </div>
+        </div>
+
+        <div class="sub" id="sub-tour" hidden>
+          <button class="back" data-back>‹ Back</button>
+          <div class="card tour-card" id="tour-card">
+            <h4 class="card-title">Tournaments</h4>
+            <div id="tour-body"></div>
           </div>
         </div>
 

@@ -1690,16 +1690,18 @@
     const line = t.status === 'open' ? `${t.entered ? 'You are entered · ' : ''}entries close in ${duration(Math.max(0, secsLeft(t.closes_at)))}`
       : live ? 'Your match is live — tap to fight!' : `Round ${t.round} under way`;
     al.innerHTML = `<span class="a-ico">🏆</span><span><strong>Tournament at ${esc(t.town)}</strong><small>${line} · 1st: ${esc(t.prizes[0])}</small></span>`;
-    al.onclick = () => (live ? checkBattle() : showPane('pane-world'));
+    al.onclick = () => (live ? checkBattle() : showPane('pane-world', 'sub-tour'));
   }
 
   function renderTour(d) {
     tourBanner(d);
+    const openHere = d.list.filter((t) => t.status === 'open' || (t.status === 'running' && (t.entered || t.is_host))).length;
+    $('#hub-tour').hidden = !openHere; $('#hub-tour').textContent = openHere;
     const body = $('#tour-body');
     if (!body) return;
     body.innerHTML = '';
     const add = (html) => { const e = document.createElement('div'); e.innerHTML = html; body.appendChild(e); return e; };
-    if (!d.list.length) add('<p class="muted small-text">No tournament right now. Anyone can host one from a town: put up three prizes and the whole world is invited to fight for them.</p>');
+    if (!d.list.length) add('<p class="muted small-text">No tournament right now. Host one from any town: put up three prizes and the whole world is invited to fight for them.</p>');
     d.list.forEach((t) => {
       const head = t.status === 'open' ? `Entries close in ${duration(Math.max(0, secsLeft(t.closes_at)))}` : t.status === 'running' ? `Round ${t.round}` : t.status === 'done' ? 'Finished' : 'Called off';
       const box = add(`<div class="tour">
@@ -2125,7 +2127,7 @@
     card.hidden = !state.region.is_town || !!state.travel;
     if (card.hidden) return;
     const p = state.pools || {};
-    $('#town-note').textContent = `${state.region.name} is a safe town. Buy manuals at the market, or have the healer treat your wounds.`;
+    $('#town-note').textContent = `${state.region.name} is a safe town. Trade at the market, heal your wounds, enter secret realms, or host and join tournaments.`;
     const healing = p.heal_until && secsLeft(p.heal_until) > 0;
     $('#healer-note').textContent = healing ? `Treating · ${duration(secsLeft(p.heal_until))}` : p.hp < p.hp_max ? `${fmt(p.hp_max - p.hp)} HP to heal` : 'You are healthy';
     $('#btn-healer').disabled = healing || !(p.hp < p.hp_max);
