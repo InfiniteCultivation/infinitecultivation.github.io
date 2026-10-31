@@ -750,3 +750,11 @@ body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after 
 .ad-alpha button { font: inherit; font-size: .8rem; font-weight: 700; padding: 6px 0; border-radius: 8px; color: var(--gold-2); background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
 .ad-alpha button:disabled { color: var(--muted); opacity: .35; }
 .ad-list { position: relative; }
+.attr-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.attr-list li { padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.04); }
+.attr-list em { font-style: normal; color: var(--gold-2); }
+.attr-derived { margin-top: 10px; }
+.stat-desc { margin: 4px 0 6px; line-height: 1.4; }
+.g-table { width: 100%; border-collapse: collapse; margin: 8px 0 10px; font-size: .82rem; }
+.g-table th { text-align: left; color: var(--gold-2); font-weight: 600; padding: 6px 6px; border-bottom: 1px solid rgba(255,255,255,.12); }
+.g-table td { padding: 6px 6px; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: top; }

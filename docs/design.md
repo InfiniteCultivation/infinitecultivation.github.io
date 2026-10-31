@@ -386,3 +386,8 @@ Decisions agreed with the owner, to build into later milestones.
 
 ## Step 28 — Seclusion auto-advance (owner chose option 1)
 - During seclusion, stages 1–9 (and endless Levels) advance automatically; overflow qi carries into the next stage; free points are granted. It stops before a major breakthrough, with a one-time "Ready for a major breakthrough" message per seclusion.
+
+## Step 29 — Stat attributes + fuller guide
+- 11 attributes, each 60% primary + 20% x2 secondary stats: Health (Con | Endu, Fort), Stamina (Endu | Con, Wil), Energy (Soul | Int, Endu), Martial power (Str | Dex, Agi), Spell power (Int | Soul, Per), Physical defense (Con | Endu, Str), Mental defense (Wil | Fort, Soul), Speed (Agi | Per, Dex), Awareness (Per | Int, Agi), Precision (Dex | Str, Per), Resilience (Fort | Wil, Con).
+- Formulas now use them (same values when stats are equal). Art power = 70% Martial/Spell + 30% the arts own stats. Resilience scales out-of-battle healing; Precision scales crafting/gathering yields; Awareness gathering finds.
+- Stats screen: Attributes card + description and Primary/Helps for each stat. Guide: detailed Cultivation, Spirit roots, Stats and Rebirth tabs with tables.

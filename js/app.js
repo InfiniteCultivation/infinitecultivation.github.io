@@ -2167,11 +2167,21 @@
   const STAT_NAMES = { str: 'Strength', agi: 'Agility', dex: 'Dexterity', con: 'Constitution', endu: 'Endurance',
     intl: 'Intelligence', per: 'Perception', soul: 'Soul Power', wil: 'Willpower', fort: 'Fortitude' };
   const STAT_GROUPS = [
-    { title: 'Physical attack', note: 'Martial arts and physical skills', keys: ['str', 'agi', 'dex'] },
-    { title: 'Physical defense', note: 'Resists martial attacks', keys: ['con', 'endu'] },
-    { title: 'Mental attack', note: 'Magic arts', keys: ['intl', 'per', 'soul'] },
-    { title: 'Mental defense', note: 'Resists magic', keys: ['wil', 'fort'] }
+    { title: 'Body stats', note: 'Raised by training; capped by your stage and Body cultivation level', keys: ['str', 'agi', 'dex', 'con', 'endu'] },
+    { title: 'Mind stats', note: 'Raised by training; capped by your stage and Mental cultivation level', keys: ['intl', 'per', 'soul', 'wil', 'fort'] }
   ];
+  const STAT_DESC = {
+    str: 'Raw physical might. The heart of martial power.',
+    agi: 'Quickness of body. Decides who acts first and helps you escape.',
+    dex: 'Fine control of hands and body. Precise strikes, better harvests and crafts.',
+    con: 'Toughness of flesh and bone. More health and physical defense.',
+    endu: 'Staying power. More stamina, and supports health and energy.',
+    intl: 'Understanding of the Dao. The heart of spell power.',
+    per: 'Senses and insight. Acting first, noticing rare finds.',
+    soul: 'Strength of the soul. Your pool of energy for arts.',
+    wil: 'Unbending will. Resists magic and mental attacks.',
+    fort: 'Inner fortitude. Faster recovery and a sturdier body.'
+  };
   let statsData = null;
   let statsTimer = null;
 
@@ -2202,6 +2212,22 @@
 
     const wrap = $('#st-groups');
     wrap.innerHTML = '';
+    const sets = d.sets || [];
+    const roleOf = (k) => {
+      const prim = sets.filter((x) => x.p === k).map((x) => x.name);
+      const sec = sets.filter((x) => (x.s || []).includes(k)).map((x) => x.name);
+      return `${prim.length ? `<strong>Primary:</strong> ${prim.join(', ')}` : ''}${prim.length && sec.length ? ' · ' : ''}${sec.length ? `<strong>Helps:</strong> ${sec.join(', ')}` : ''}`;
+    };
+    if (sets.length) {
+      const ac = document.createElement('div');
+      ac.className = 'card stat-group';
+      const bonus = Math.round((Number(d.stat_mult || 1) - 1) * 1000) / 10;
+      ac.innerHTML = `<h4 class="card-title">Attributes</h4><p class="muted small-text g-note">Each attribute comes 60% from its primary stat and 20% from each secondary stat${bonus > 0 ? `, then +${bonus}% from your root and past lives` : ''}.</p>
+        <ul class="attr-list">${sets.map((x) => `<li><div class="sr-top"><strong>${esc(x.name)}</strong><span>${x.value}</span></div>
+          <span class="muted small-text">${esc(x.does)} <em>${STAT_NAMES[x.p]}</em> + ${x.s.map((k) => STAT_NAMES[k]).join(', ')}</span></li>`).join('')}</ul>
+        ${d.derived ? `<p class="small-text attr-derived">Max health <strong>${fmt(d.derived.hp_max)}</strong> · Max energy <strong>${fmt(d.derived.energy_max)}</strong> · Max stamina <strong>${fmt(d.derived.stamina_max)}</strong></p>` : ''}`;
+      wrap.appendChild(ac);
+    }
     STAT_GROUPS.forEach((g) => {
       const card = document.createElement('div');
       card.className = 'card stat-group';
@@ -2212,6 +2238,7 @@
         const row = document.createElement('div');
         row.className = 'stat-row' + (d.training && d.training.stat === k ? ' training' : '');
         row.innerHTML = `<div class="sr-top"><strong>${STAT_NAMES[k]}</strong><span>${fmt(v.value)} <span class="muted">/ ${fmt(v.cap)}</span></span></div>
+          <p class="stat-desc small-text">${STAT_DESC[k]}<br><span class="muted">${roleOf(k)}</span></p>
           <div class="meter-track thin"><div class="meter-fill ${['str','agi','dex','con','endu'].includes(k) ? 'phys' : 'ment'}" style="width:${pct}%"></div></div>
           <div class="sr-bottom"><span class="muted small-text">${v.rate > 0 ? `Training: +${v.rate} / hour` : 'At its cap'}</span><span class="sr-btns"></span></div>`;
         const btns = row.querySelector('.sr-btns');
@@ -2280,34 +2307,48 @@
   // ---------- Guide ----------
   const GUIDE = [
     ['Start', `<h3>Welcome, cultivator</h3>
-      <p>You are a mortal who has just awakened a <strong>spirit root</strong>. Your goal: gather qi, break through realm after realm, and grow strong enough to shape the world — alone, with a party, or with a sect.</p>
+      <p>You are a mortal who has just awakened a <strong>spirit root</strong> — your cultivation core. Gather qi, break through realm after realm, and grow strong enough to shape the world: alone, with a party, or with a sect.</p>
       <h4>Your first steps</h4>
       <ol><li>Tap <strong>Cultivate</strong> on Home. For the next hour you gather qi. Come back and tap it again.</li>
-      <li>When the qi bar is full, tap <strong>Advance</strong> to reach the next stage.</li>
-      <li>Before you log off, start <strong>Seclusion</strong>: it keeps cultivating while you're away, faster than normal.</li>
-      <li>Go to <strong>World › Explore</strong> to find herbs, stones and fights. Spend stat points in <strong>Character › Stats</strong>.</li>
-      <li>Pick a <strong>Class</strong> and a <strong>Profession</strong> in Character when you're ready — you can't change them easily.</li></ol>
+      <li>When the qi bar is full, tap <strong>Advance</strong> to reach the next stage. Each stage gives free stat points — spend them in <strong>Character › Stats</strong>.</li>
+      <li>Before you log off, enter <strong>Seclusion</strong> (in a town or at your sect's home): it cultivates 2.5× faster while you're away and even advances ordinary stages for you.</li>
+      <li>Go to <strong>World › Explore</strong> to find herbs, stones, beasts and chance encounters.</li>
+      <li>Choose a <strong>Class</strong> and a <strong>Profession</strong> in Character when you're ready.</li></ol>
       <h4>The screens</h4>
-      <ul><li><strong>Home</strong>: your cultivation, health, energy, stamina, alerts and notifications.</li>
-      <li><strong>Character</strong>: stats, skills, arts, class, profession, gear, styles, upgrades, messages and rebirth.</li>
-      <li><strong>World</strong>: explore, hunt, travel, find cultivators nearby, sects, raids, tournaments and secret realms.</li>
-      <li><strong>Chat</strong> and <strong>Sect Chat</strong>: talk with your region, continent, the whole world, or your sect.</li></ul>`],
-    ['Cultivation', `<h3>Qi and breakthroughs</h3>
-      <p>There are <strong>10 realms</strong>, each with <strong>10 stages</strong>: Qi Condensation, Foundation Establishment, Core Formation, Nascent Soul, Soul Formation, Void Refinement, Body Integration, Mahayana, Tribulation Transcendence and Immortal Ascension.</p>
-      <ul><li><strong>Cultivate</strong> gathers qi for one hour at a time.</li>
-      <li><strong>Seclusion</strong> gathers qi 2.5× faster (more inside your sect's home), up to 8 hours a day. You can't explore or fight while secluded.</li>
-      <li>When a stage is full, qi stops until you advance. In <strong>seclusion</strong>, stages 1–9 advance by themselves and extra qi carries over — it only stops before a major breakthrough, which you must attempt yourself (you'll get a message).</li>
-      <li>Stages 1–9 always succeed. Stage 10 to the next realm is a <strong>major breakthrough</strong>: 90% at first, 6% lower each realm (never below 30%). Failing scatters half your qi.</li>
-      <li>Every new stage gives free stat points; a new realm gives 10 extra.</li>
-      <li>After Immortal Ascension 10 you keep climbing in endless <strong>Levels</strong>.</li></ul>
-      <h4>Speeding up</h4>
-      <p>Winning fights grants instant qi and a short speed boost. Pills give big bursts of qi but build <strong>toxicity</strong>: temporary toxicity fades on its own; too much becomes permanent and slows you for good. Masters, secret realms and reincarnation blessings help too.</p>`],
-    ['Spirit roots', `<h3>Your spirit root</h3>
-      <p>Your root is <strong>sealed</strong> until you reach Foundation Establishment — until then everyone cultivates at the same pace. When it awakens you learn its <strong>elements</strong> and <strong>grade</strong>.</p>
-      <ul><li><strong>Grade</strong> sets your cultivation speed and a small bonus to all stats: Mixed (5 roots ×1.00, 4 roots ×1.07), Human ×1.16 (+2%), Earth ×1.26 (+3%), Heavenly ×1.38 (+5%), and the rare Mutant ×1.52 (+5%).</li>
-      <li><strong>Elements</strong> each grant a gift, shared between all your elements: Fire faster energy recovery, Water faster health recovery, Earth more health, Metal more damage, Wood more stamina, Lightning dodge, Ice parry, Nature stronger healing.</li>
-      <li>Elements also matter for professions (some suit certain elements) and for Spellcasters.</li></ul>
-      <p>Better roots are noticeably better, not unbeatable. A poor root can still go far — and reincarnation lets you try for a new one.</p>`],
+      <ul><li><strong>Home</strong>: cultivation, health, energy, stamina, alerts, notifications, this guide and settings.</li>
+      <li><strong>Character</strong>: stats, skills, arts, class, profession, gear, cultivation styles, upgrades, messages and rebirth.</li>
+      <li><strong>World</strong>: explore, hunt, travel, cultivators nearby, and in towns the market, healer, secret realms and tournaments.</li>
+      <li><strong>Chat</strong> and <strong>Sect Chat</strong>: talk with your region, continent, the world, or your sect.</li></ul>`],
+    ['Cultivation', `<h3>Realms and stages</h3>
+      <p>Cultivation has <strong>10 realms</strong>, each with <strong>10 stages</strong> — 100 steps in all. Each stage needs about 35% more qi than the last, and each realm about 1.5× longer than the one before, so the climb gets steadily harder.</p>
+      <table class="g-table"><tr><th>#</th><th>Realm</th><th>Stage 10 → next realm</th></tr><tr><td>1</td><td>Qi Condensation</td><td>90% success</td></tr><tr><td>2</td><td>Foundation Establishment</td><td>84% success</td></tr><tr><td>3</td><td>Core Formation</td><td>78% success</td></tr><tr><td>4</td><td>Nascent Soul</td><td>72% success</td></tr><tr><td>5</td><td>Soul Formation</td><td>66% success</td></tr><tr><td>6</td><td>Void Refinement</td><td>60% success</td></tr><tr><td>7</td><td>Body Integration</td><td>54% success</td></tr><tr><td>8</td><td>Mahayana</td><td>48% success</td></tr><tr><td>9</td><td>Tribulation Transcendence</td><td>42% success</td></tr><tr><td>10</td><td>Immortal Ascension</td><td>Endless Levels</td></tr></table>
+      <ul><li>Stages 1–9 of a realm always succeed once the bar is full.</li>
+      <li>Stage 10 → the next realm is a <strong>major breakthrough</strong>. If it fails, half your qi scatters and you must refill it. Blessings from past lives can raise the chance.</li>
+      <li>Every stage gives free stat points (more at higher stages); a new realm gives 10 extra.</li>
+      <li>After Immortal Ascension 10 you keep climbing in endless <strong>Levels</strong>, each needing a little more qi.</li></ul>
+      <h4>Ways to gather qi</h4>
+      <ul><li><strong>Cultivate</strong>: one hour per tap, at your normal speed.</li>
+      <li><strong>Seclusion</strong>: 2.5× speed (×1.2 more at your sect's home), up to 8 hours a day, in a town or at your sect. Stages 1–9 advance by themselves and leftover qi carries over; it stops before a major breakthrough and tells you. Leaving early gives the unused hours back.</li>
+      <li><strong>Fighting</strong>: victories grant instant qi and a short speed boost; losing a fight you started slows you for a while.</li>
+      <li><strong>Pills and treasures</strong>: instant qi, but they add <strong>toxicity</strong>.</li></ul>
+      <h4>Toxicity</h4>
+      <p>Temporary toxicity (0–100) slows cultivation by up to half and fades by itself (about 1 point every 2 minutes). Push it past 100 and half the excess becomes <strong>permanent</strong> toxicity, which slows you until cleansed by rare items, encounters or an elder.</p>
+      <h4>How long does it take?</h4>
+      <p>Cultivating nonstop with nothing else, reaching Soul Formation (the halfway realm) takes about a month with the weakest root and three weeks with the best. Fights, pills, masters, realms and blessings shorten that a lot.</p>`],
+    ['Spirit roots', `<h3>Your spirit root (core)</h3>
+      <p>Every cultivator is born with a spirit root. It stays <strong>sealed</strong> until you break through to Foundation Establishment — until then everyone cultivates at the same pace, so starting over to fish for a good root reveals nothing.</p>
+      <h4>Grades</h4><table class="g-table"><tr><th>Grade</th><th>How rare</th><th>Speed</th><th>All stats</th></tr><tr><td>Mutant (Lightning, Ice or Nature)</td><td>2%</td><td>×1.52</td><td>+5%</td></tr><tr><td>Heavenly (1 element)</td><td>~5%</td><td>×1.38</td><td>+5%</td></tr><tr><td>Earth (2 elements)</td><td>~15%</td><td>×1.26</td><td>+3%</td></tr><tr><td>Human (3 elements)</td><td>~29%</td><td>×1.16</td><td>+2%</td></tr><tr><td>Mixed (4 elements)</td><td>~29%</td><td>×1.07</td><td>—</td></tr><tr><td>Mixed (5 elements)</td><td>~20%</td><td>×1.00</td><td>—</td></tr></table>
+      <p><strong>Speed</strong> multiplies how fast you gather qi. <strong>All stats</strong> raises every attribute a little.</p>
+      <h4>Elements</h4><table class="g-table"><tr><th>Element</th><th>Gift (full strength)</th></tr><tr><td>Fire</td><td>+15% energy recovery</td></tr><tr><td>Water</td><td>+30% health recovery</td></tr><tr><td>Earth</td><td>+6% max health</td></tr><tr><td>Metal</td><td>+5% damage</td></tr><tr><td>Wood</td><td>+15 max stamina</td></tr><tr><td>Lightning</td><td>+4% dodge chance</td></tr><tr><td>Ice</td><td>+4% parry chance</td></tr><tr><td>Nature</td><td>+15% healing power</td></tr></table>
+      <p>The gifts are shared between your elements: a single-element root gets its gift in full, a five-element root gets five small gifts. Elements also decide which professions suit you and matter for Spellcasters.</p>
+      <p>Better roots are a noticeable advantage, not an unbeatable one — and reincarnation gives you a fresh roll.</p>`],
+    ['Stats', `<h3>Stats</h3>
+      <p>You have ten stats. <strong>Body</strong> stats: Strength, Agility, Dexterity, Constitution, Endurance. <strong>Mind</strong> stats: Intelligence, Perception, Soul Power, Willpower, Fortitude.</p>
+      <ul><li>Raise them with free points (from every stage) or by <strong>training</strong> one for an hour at a time (cultivation pauses meanwhile).</li>
+      <li>Each stat is capped by your stage. Training is fast far below the cap and slows near it. Body and Mind cultivation levels rise as you train, lifting caps and training speed.</li></ul>
+      <h4>Attributes</h4>
+      <p>Stats don't act alone — they combine into <strong>attributes</strong>. Each attribute takes 60% from one primary stat and 20% from each of two secondary stats:</p><table class="g-table"><tr><th>Attribute</th><th>Primary (60%)</th><th>Secondary (20% each)</th><th>What it does</th></tr><tr><td>Health</td><td>Constitution</td><td>Endurance, Fortitude</td><td>Maximum health</td></tr><tr><td>Stamina</td><td>Endurance</td><td>Constitution, Willpower</td><td>Maximum stamina</td></tr><tr><td>Energy</td><td>Soul Power</td><td>Intelligence, Endurance</td><td>Maximum energy for arts</td></tr><tr><td>Martial power</td><td>Strength</td><td>Dexterity, Agility</td><td>Damage of martial arts and physical skills</td></tr><tr><td>Spell power</td><td>Intelligence</td><td>Soul Power, Perception</td><td>Damage of magic arts and mental skills</td></tr><tr><td>Physical defense</td><td>Constitution</td><td>Endurance, Strength</td><td>Less damage from martial attacks</td></tr><tr><td>Mental defense</td><td>Willpower</td><td>Fortitude, Soul Power</td><td>Less damage from magic</td></tr><tr><td>Speed</td><td>Agility</td><td>Perception, Dexterity</td><td>Acting first; escaping</td></tr><tr><td>Awareness</td><td>Perception</td><td>Intelligence, Agility</td><td>Acting first; spotting rare finds</td></tr><tr><td>Precision</td><td>Dexterity</td><td>Strength, Perception</td><td>Extra gathering yields; crafting success</td></tr><tr><td>Resilience</td><td>Fortitude</td><td>Willpower, Constitution</td><td>Health recovery outside battle</td></tr></table>
+      <p>Arts also list their own stats: an art's power is 70% your Martial or Spell power and 30% the stats it names. Your root grade and past lives multiply every attribute.</p>`],
     ['Combat', `<h3>How fights work</h3>
       <ul><li>Fights are turn based. Each turn: use a <strong>Strike</strong> or <strong>Technique</strong>, defend with a <strong>Reaction</strong>, drink a pill, or flee.</li>
       <li>Equip up to <strong>6 arts</strong> plus one <strong>Ultimate</strong> in Character › Arts. Arts cost energy; the Ultimate charges over several turns.</li>
@@ -2352,11 +2393,20 @@
       <h3>Tournaments</h3>
       <p>Anyone can host from a town by putting up three prizes. Everyone is notified and has 10 minutes to reach that town and enter. Single-elimination matches are fought in the arena at full health with no injuries; prizes for 1st, 2nd and 3rd are paid automatically.</p>`],
     ['Rebirth', `<h3>Reincarnation</h3>
-      <p>Once you reach <strong>Soul Formation</strong>, you may be reborn (Character › Rebirth).</p>
-      <ul><li>Each life adds a <strong>permanent bonus to all stats</strong> that stacks forever: Soul Formation +1%, Void Refinement +1.8%, Body Integration +3%, Mahayana +5%, Tribulation +8%, Immortal Ascension +13%, the peak +20%, and +0.2% per Level beyond. Going further always pays more for your time.</li>
-      <li>You also choose <strong>one blessing</strong> from each of four categories — Cultivation, Class, Profession and Stats. Three random offers in each; how strong they are depends on how far you got.</li>
-      <li><strong>Resets</strong>: realm, root (a new sealed one), class, profession, stats, skills, arts, upgrades, toxicity, equipped gear. <strong>Kept</strong>: your bag, stones, sect, master and pupils.</li></ul>
-      <p>A life with a poor root can be reborn early and still gain something — but a strong life pushed deep gives the greatest rewards.</p>`]
+      <p>Once you reach <strong>Soul Formation</strong> you may be reborn (Character › Rebirth). You return to Qi Condensation 1 with a new, sealed spirit root — but your soul keeps what it earned.</p>
+      <h4>Soul bonus</h4><table class="g-table"><tr><th>Life reached</th><th>Bonus to all stats</th></tr><tr><td>Soul Formation</td><td>+1%</td></tr><tr><td>Void Refinement</td><td>+1.8%</td></tr><tr><td>Body Integration</td><td>+3%</td></tr><tr><td>Mahayana</td><td>+5%</td></tr><tr><td>Tribulation Transcendence</td><td>+8%</td></tr><tr><td>Immortal Ascension</td><td>+13%</td></tr><tr><td>Peak (Immortal Ascension 10)</td><td>+20%</td></tr><tr><td>Each Level beyond</td><td>+0.2% more</td></tr></table>
+      <p>The bonus grows smoothly between realms by stage, and it <strong>stacks forever</strong> across lives. It grows faster than the time each realm takes, so a deep life is always worth more per day than repeated short ones.</p>
+      <h4>Blessings</h4>
+      <p>You also pick <strong>one blessing from each of four categories</strong>. Three random offers appear in each; their strength depends on how far that part of your life went:</p>
+      <ul><li><strong>Cultivation</strong> — from how far you climbed (weak at Soul Formation, full at the peak, even stronger in Levels): cultivation speed, breakthrough chance, max health, max energy, stamina, health or energy recovery.</li>
+      <li><strong>Class</strong> — from your class level; each class offers its own (e.g. Swordsman: crits, bleeding, damage, parry, extra hits; Physician: healing power, healing chance, energy, recovery).</li>
+      <li><strong>Profession</strong> — from your profession level (e.g. Gatherer: finds and stamina; Alchemist, Blacksmith, Talisman and Array Masters: crafting success and more).</li>
+      <li><strong>Stats</strong> — from your average trained stat: health, energy, dodge, crits, damage, stamina, parry.</li></ul>
+      <p>With no class or profession you still get weaker general blessings in that slot. The offers stay fixed until you progress further, so they can't be rerolled.</p>
+      <h4>What resets and what stays</h4>
+      <ul><li><strong>Resets</strong>: realm and stage, spirit root, class, profession, stats, skills, arts, upgrades, toxicity and equipped gear.</li>
+      <li><strong>Kept</strong>: your bag, spirit stones, sect, master and pupils, your soul bonus and every blessing.</li></ul>
+      <p>After a rebirth your soul needs 3 days to settle before the next one.</p>`]
   ];
   let guideTab = 0;
   function renderGuide() {
